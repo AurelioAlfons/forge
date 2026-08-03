@@ -1,11 +1,14 @@
+import { MusicPlayer } from "@/components/music-player/music-player";
 import { PcSequenceSection } from "@/components/pc-sequence/pc-sequence-section";
 
-// still just the fluid and the pc for now — the section components are sitting
-// in components/sections ready to wire back up when the copy is written.
+// the player floats over the pc so it never changes the sequence scroll math
 export default function Home() {
   return (
-    <main id="main" className="flex-1">
-      <PcSequenceSection />
-    </main>
+    <>
+      <MusicPlayer />
+      <main id="main" className="flex-1">
+        <PcSequenceSection />
+      </main>
+    </>
   );
 }
