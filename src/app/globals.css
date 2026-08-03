@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* Dark mode: follows the OS by default, but `data-theme` on <html> always wins. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+  Fluid design tokens.
+
+  Every value below interpolates linearly between a 320px and a 1440px viewport,
+  so there are no breakpoint jumps in type or rhythm — the page just breathes.
+  Outside that range the clamp() bounds hold, so nothing runs away on a TV or
+  collapses on a small phone.
+*/
+@theme {
+  /* Type scale — ~1.25 ratio on mobile, ~1.33 on desktop */
+  --text-step--1: clamp(0.75rem, 0.7143rem + 0.1786vw, 0.875rem); /* 12 → 14 */
+  --text-step-0: clamp(1rem, 0.9643rem + 0.1786vw, 1.125rem); /*  16 → 18 */
+  --text-step-1: clamp(1.25rem, 1.1786rem + 0.3571vw, 1.5rem); /*  20 → 24 */
+  --text-step-2: clamp(1.5625rem, 1.4375rem + 0.625vw, 2rem); /*   25 → 32 */
+  --text-step-3: clamp(
+    1.9375rem,
+    1.7232rem + 1.0714vw,
+    2.6875rem
+  ); /* 31 → 43 */
+  --text-step-4: clamp(
+    2.4375rem,
+    2.0982rem + 1.6964vw,
+    3.625rem
+  ); /*  39 → 58 */
+  --text-step-5: clamp(3rem, 2.4821rem + 2.5893vw, 4.8125rem); /*   48 → 77 */
+
+  /* Space scale — use for padding, margin, gap */
+  --spacing-3xs: clamp(0.25rem, 0.2321rem + 0.0893vw, 0.3125rem); /*  4 → 5 */
+  --spacing-2xs: clamp(0.5rem, 0.4821rem + 0.0893vw, 0.5625rem); /*   8 → 9 */
+  --spacing-xs: clamp(0.75rem, 0.7143rem + 0.1786vw, 0.875rem); /*   12 → 14 */
+  --spacing-s: clamp(1rem, 0.9643rem + 0.1786vw, 1.125rem); /*       16 → 18 */
+  --spacing-m: clamp(1.5rem, 1.4464rem + 0.2679vw, 1.6875rem); /*    24 → 27 */
+  --spacing-l: clamp(2rem, 1.9286rem + 0.3571vw, 2.25rem); /*        32 → 36 */
+  --spacing-xl: clamp(3rem, 2.8929rem + 0.5357vw, 3.375rem); /*      48 → 54 */
+  --spacing-2xl: clamp(4rem, 3.8571rem + 0.7143vw, 4.5rem); /*       64 → 72 */
+  --spacing-3xl: clamp(6rem, 5.7857rem + 1.0714vw, 6.75rem); /*      96 → 108 */
+
+  /* Measure — caps line length for readability */
+  --container-measure: 68ch;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* Semantic colors. Swap these once the design resource lands. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+}
+
+:root {
+  --bg: #ffffff;
+  --fg: #14161a;
+  --muted: #5c6370;
+  --border: #e4e7ec;
+  --accent: #d9541e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0c0e;
+    --fg: #ebedf0;
+    --muted: #9aa2af;
+    --border: #24272d;
+    --accent: #ff7a3d;
+  }
+}
+
+/* Explicit overrides beat the media query in both directions. */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #14161a;
+  --muted: #5c6370;
+  --border: #e4e7ec;
+  --accent: #d9541e;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0c0e;
+  --fg: #ebedf0;
+  --muted: #9aa2af;
+  --border: #24272d;
+  --accent: #ff7a3d;
+}
+
+@layer base {
+  html {
+    /* Anchor links clear any sticky header instead of hiding under it. */
+    scroll-padding-block-start: var(--spacing-2xl);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-step-0);
+    line-height: 1.6;
+    /* A long word or wide code block must never scroll the whole page. */
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  img,
+  svg,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility container-page {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 78rem;
+  /* Respects notches and rounded corners on phones. */
+  padding-inline: max(var(--spacing-m), env(safe-area-inset-left));
+}
