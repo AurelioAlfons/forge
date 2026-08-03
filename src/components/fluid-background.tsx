@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { DEFAULT_FLUID_THEME, FLUID_THEMES } from "@/lib/fluid/fluid-theme";
+import { getPointerInfluence } from "@/lib/fluid/pointer-influence";
 import { initFluid } from "@/lib/fluid/fluid";
 
 export function FluidBackground() {
@@ -18,6 +19,7 @@ export function FluidBackground() {
     // unmount and between strictmode's double-invoke in dev
     return initFluid(canvas, {
       palette: FLUID_THEMES[DEFAULT_FLUID_THEME].palette,
+      getPointerInfluence,
     });
   }, []);
 

@@ -1310,8 +1310,15 @@ export function initFluid(canvas, options = {}) {
   }
 
   function splatPointer(pointer) {
-    let dx = pointer.deltaX * config.SPLAT_FORCE;
-    let dy = pointer.deltaY * config.SPLAT_FORCE;
+    // pulled fresh every splat so the caller can ease it — multiplying the force
+    // instead of skipping the splat keeps the pointer tracking, so coming off the
+    // pc doesn't fling a splat from a stale coordinate
+    const influence = options.getPointerInfluence
+      ? options.getPointerInfluence()
+      : 1;
+
+    let dx = pointer.deltaX * config.SPLAT_FORCE * influence;
+    let dy = pointer.deltaY * config.SPLAT_FORCE * influence;
     splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
   }
 

@@ -1,0 +1,152 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  FRAME_COUNT,
+  MAX_DPR,
+  REDUCED_MOTION_QUERY,
+  SCROLL_LENGTH_VH,
+  SCRUB,
+} from "@/lib/pc-sequence/config";
+import { useFrameSequence } from "./use-frame-sequence";
+import { useMediaQuery } from "./use-media-query";
+
+gsap.registerPlugin(ScrollTrigger);
+
+export function PcSequenceSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // scroll progress lives in a ref so scrubbing doesn't re-render the section
+  const progressRef = useRef(0);
+  const drawnIndexRef = useRef(-1);
+
+  const reduced = useMediaQuery(REDUCED_MOTION_QUERY);
+  const { frames, ready, progress } = useFrameSequence();
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const stage = stageRef.current;
+    const section = sectionRef.current;
+    if (!canvas || !stage || !section || !ready) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const triggers: ScrollTrigger[] = [];
+    let rafId = 0;
+
+    // ===== SIZING =====
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+      const w = stage!.clientWidth;
+      const h = stage!.clientHeight;
+
+      canvas!.width = Math.round(w * dpr);
+      canvas!.height = Math.round(h * dpr);
+      canvas!.style.width = `${w}px`;
+      canvas!.style.height = `${h}px`;
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      drawnIndexRef.current = -1; // force a redraw at the new size
+    }
+
+    // ===== DRAW =====
+    // contain-fit and centred, same scale as before the background cleanup
+    function draw(index: number) {
+      const img = frames[index];
+      if (!img || !img.naturalWidth) return;
+
+      const w = stage!.clientWidth;
+      const h = stage!.clientHeight;
+      const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+      const dw = img.naturalWidth * scale;
+      const dh = img.naturalHeight * scale;
+      const dx = (w - dw) / 2;
+      const dy = (h - dh) / 2;
+
+      ctx!.clearRect(0, 0, w, h);
+      ctx!.drawImage(img, dx, dy, dw, dh);
+
+      drawnIndexRef.current = index;
+    }
+
+    // ===== FRAME LOOP =====
+    // run out to the exploded frame, then walk the same frames home
+    function tick() {
+      const lastIndex = FRAME_COUNT - 1;
+      const step = Math.min(
+        lastIndex * 2,
+        Math.max(0, Math.round(progressRef.current * lastIndex * 2)),
+      );
+      const index = step <= lastIndex ? step : lastIndex * 2 - step;
+
+      if (index !== drawnIndexRef.current) draw(index);
+
+      rafId = requestAnimationFrame(tick);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    // ===== SCROLL =====
+    // reduced motion gets a single frame and no pin
+    if (reduced) {
+      progressRef.current = 0;
+      draw(0);
+    } else {
+      triggers.push(
+        ScrollTrigger.create({
+          trigger: section!,
+          start: "top top",
+          end: `+=${window.innerHeight * SCROLL_LENGTH_VH}`,
+          pin: stage!,
+          pinSpacing: false,
+          scrub: SCRUB,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            progressRef.current = self.progress;
+          },
+        }),
+      );
+    }
+
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", resize);
+      // only our own triggers — getAll() would kill anything else on the page
+      for (const t of triggers) t.kill();
+    };
+  }, [frames, ready, reduced]);
+
+  return (
+    <section
+      ref={sectionRef}
+      style={{ height: `${(SCROLL_LENGTH_VH + 1) * 100}svh` }}
+    >
+      <div
+        ref={stageRef}
+        className="bg-bg relative h-svh w-full overflow-hidden"
+      >
+        {/* no filter, no background, no shadow on this one — any of them would
+            draw the rectangle the whole cutout exists to avoid */}
+        <canvas
+          ref={canvasRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+        />
+
+        {!ready && (
+          <div className="text-muted text-step--1 bottom-l absolute inset-x-0 text-center font-mono">
+            {Math.round(progress * 100)}%
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

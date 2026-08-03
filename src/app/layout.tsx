@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { FluidBackground } from "@/components/fluid-background";
 import { site } from "@/lib/site";
 import "@/styles/globals.css";
 
@@ -52,10 +51,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <FluidBackground />
-
-        {/* empty for now, but content rides above the canvas when it comes back
-            — otherwise the sim eats the page. skip link returns with the nav. */}
+        {/* keep the shell ready for the nav and the rest of the page later */}
         <div className="relative z-10 flex min-h-full flex-col">{children}</div>
       </body>
     </html>
