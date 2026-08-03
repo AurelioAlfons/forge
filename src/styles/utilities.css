@@ -1,0 +1,7 @@
+@utility container-page {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 78rem;
+  /* Respects notches and rounded corners on phones. */
+  padding-inline: max(var(--spacing-m), env(safe-area-inset-left));
+}

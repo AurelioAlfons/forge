@@ -1,0 +1,16 @@
+# Vendored simulation — keep it close to upstream, don't churn it on format
+src/lib/fluid/fluid.js
+
+# Standalone sim + video source, both untracked.
+# Leading slash so these only match at the repo root — plain `fluid/` would
+# also swallow src/lib/fluid/ and skip fluid.d.ts along with it.
+/fluid/
+/Vid_Frame/
+
+# My planning docs, not code
+grimoire/
+grimoire_Forge/
+
+# Build output
+.next/
+pnpm-lock.yaml

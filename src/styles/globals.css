@@ -1,0 +1,12 @@
+/*
+  Style entry point. Order matters: tokens define the raw values, theme maps
+  them to semantic colors, base and utilities consume both.
+
+  `@custom-variant dark` lives in theme.css rather than here — CSS wants every
+  @import at the top of the file, and a rule sitting above them is invalid.
+*/
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./theme.css";
+@import "./base.css";
+@import "./utilities.css";

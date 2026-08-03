@@ -1,0 +1,55 @@
+@layer base {
+  html {
+    /* Anchor links clear any sticky header instead of hiding under it. */
+    scroll-padding-block-start: var(--spacing-2xl);
+    -webkit-text-size-adjust: 100%;
+    /* black sits behind everything until the sim paints its first frame */
+    background-color: #000;
+  }
+
+  body {
+    /* transparent, not var(--bg) — that would paint straight over the canvas */
+    background-color: transparent;
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-step-0);
+    line-height: 1.6;
+    /* A long word or wide code block must never scroll the whole page. */
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  img,
+  svg,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

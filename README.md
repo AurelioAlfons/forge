@@ -26,7 +26,7 @@ There are almost no responsive breakpoints in this codebase. Type and spacing
 interpolate linearly between a **320px** and a **1440px** viewport using
 `clamp()`, so layouts scale continuously instead of snapping at breakpoints.
 
-Tokens are defined in [`src/app/globals.css`](src/app/globals.css) under
+Tokens are defined in [`src/styles/tokens.css`](src/styles/tokens.css) under
 `@theme`, which makes them available as ordinary Tailwind utilities:
 
 | Token            | Utility        | 320px → 1440px |
@@ -65,9 +65,32 @@ change — a column count, a stacked nav becoming horizontal. Never for sizing.
 
 ```
 src/
-  app/         routes, layout, global styles
-  components/  shared UI
-  lib/         site config and helpers
+  app/
+    layout.tsx              root layout, metadata, skip link
+    page.tsx                composition only — sections do the work
+  components/
+    layout/                 site-wide chrome (header, footer)
+    sections/               one file per home-page section
+    ui/                     primitives (card, tag, button)
+  lib/
+    site.ts                 site config and helpers
+  styles/
+    globals.css             entry point — imports the four partials below
+    tokens.css              @theme: type scale, space scale, measure, fonts
+    theme.css               semantic colors, dark mode, data-theme overrides
+    base.css                @layer base element defaults
+    utilities.css           @utility container-page
 ```
+
+Styles are split so the visual work ahead has somewhere to land instead of
+piling into one file. The import order in `globals.css` matters — tokens define
+the raw values, theme maps them to semantic colors, base and utilities consume
+both.
+
+### Conventions
+
+- **kebab-case filenames.** No PascalCase files.
+- **No barrel `index.ts` files.** Import the real path —
+  `@/components/layout/site-header`.
 
 Site-wide copy (name, nav, links) lives in [`src/lib/site.ts`](src/lib/site.ts).

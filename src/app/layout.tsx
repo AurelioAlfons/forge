@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { FluidBackground } from "@/components/fluid-background";
 import { site } from "@/lib/site";
-import "./globals.css";
+import "@/styles/globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,10 +37,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0c0e" },
-  ],
+  // one value now => the page is pinned dark, so browser chrome matches it
+  // regardless of what the OS asks for
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -48,16 +48,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="dark"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
-        <a
-          href="#main"
-          className="bg-accent text-bg px-xs py-2xs focus:top-2xs focus:left-2xs sr-only rounded-md focus:not-sr-only focus:absolute focus:z-50"
-        >
-          Skip to content
-        </a>
-        {children}
+      <body className="min-h-full">
+        <FluidBackground />
+
+        {/* empty for now, but content rides above the canvas when it comes back
+            — otherwise the sim eats the page. skip link returns with the nav. */}
+        <div className="relative z-10 flex min-h-full flex-col">{children}</div>
       </body>
     </html>
   );

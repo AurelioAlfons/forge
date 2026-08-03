@@ -1,0 +1,47 @@
+/* Dark mode: follows the OS by default, but `data-theme` on <html> always wins. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Semantic colors. Swap these once the design resource lands. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+}
+
+:root {
+  --bg: #ffffff;
+  --fg: #14161a;
+  --muted: #5c6370;
+  --border: #e4e7ec;
+  --accent: #d9541e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0c0e;
+    --fg: #ebedf0;
+    --muted: #9aa2af;
+    --border: #24272d;
+    --accent: #ff7a3d;
+  }
+}
+
+/* Explicit overrides beat the media query in both directions. */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #14161a;
+  --muted: #5c6370;
+  --border: #e4e7ec;
+  --accent: #d9541e;
+}
+
+[data-theme="dark"] {
+  /* pure black so the page matches the sim's BACK_COLOR */
+  --bg: #000000;
+  --fg: #ebedf0;
+  --muted: #9aa2af;
+  --border: #24272d;
+  --accent: #ff7a3d;
+}
