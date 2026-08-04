@@ -30,16 +30,16 @@ export function initFluid(canvas, options = {}) {
   resizeCanvas();
 
   const config = {
-    SIM_RESOLUTION: 128,
-    DYE_RESOLUTION: 1024,
+    SIM_RESOLUTION: options.tuning?.simResolution ?? 128,
+    DYE_RESOLUTION: options.tuning?.dyeResolution ?? 1024,
 
-    DENSITY_DISSIPATION: 1,
-    VELOCITY_DISSIPATION: 0.2,
+    DENSITY_DISSIPATION: options.tuning?.densityDissipation ?? 1,
+    VELOCITY_DISSIPATION: options.tuning?.velocityDissipation ?? 0.2,
     PRESSURE: 0.8,
     PRESSURE_ITERATIONS: 20,
-    CURL: 30,
-    SPLAT_RADIUS: 0.1,
-    SPLAT_FORCE: 6000,
+    CURL: options.tuning?.curl ?? 30,
+    SPLAT_RADIUS: options.tuning?.splatRadius ?? 0.1,
+    SPLAT_FORCE: options.tuning?.splatForce ?? 6000,
 
     SHADING: true,
     COLORFUL: true,
@@ -136,7 +136,7 @@ export function initFluid(canvas, options = {}) {
       supportLinearFiltering = gl.getExtension("OES_texture_half_float_linear");
     }
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, options.transparent ? 0.0 : 1.0);
 
     const halfFloatTexType = isWebGL2 ? gl.HALF_FLOAT : halfFloat.HALF_FLOAT_OES;
 
@@ -1014,7 +1014,7 @@ export function initFluid(canvas, options = {}) {
 
   updateKeywords();
   initFramebuffers();
-  multipleSplats(8);
+  if (options.initialSplats !== 0) multipleSplats(options.initialSplats ?? 8);
 
   let lastUpdateTime = Date.now();
   let colorUpdateTimer = 0.0;
@@ -1217,7 +1217,8 @@ export function initFluid(canvas, options = {}) {
     gl.viewport(0, 0, width, height);
 
     let fbo = target == null ? null : target.fbo;
-    drawColor(fbo, normalizeColor(config.BACK_COLOR));
+    if (options.transparent) gl.clear(gl.COLOR_BUFFER_BIT);
+    else drawColor(fbo, normalizeColor(config.BACK_COLOR));
     drawDisplay(fbo, width, height);
   }
 
@@ -1378,6 +1379,20 @@ export function initFluid(canvas, options = {}) {
   }
 
   function onMouseMove(e) {
+    if (
+      options.ignoreSelector &&
+      e
+        .composedPath()
+        .some(
+          (target) =>
+            target instanceof Element &&
+            target.matches(options.ignoreSelector),
+        )
+    ) {
+      updatePointerUpData(pointers[0]);
+      return;
+    }
+
     idleMode = false;
     clearTimeout(idleTimeout);
 
@@ -1432,7 +1447,7 @@ export function initFluid(canvas, options = {}) {
   // never sees the touch either. passive, so taps and scrolling stay normal.
   window.addEventListener("touchstart", onTouchStart, { passive: true });
 
-  idleSplatInterval = setInterval(() => {
+  if (options.idleSplats !== false) idleSplatInterval = setInterval(() => {
     if (!idleMode) return;
 
     for (let i = 0; i < 2; i++) {
@@ -1601,7 +1616,7 @@ export function initFluid(canvas, options = {}) {
 
   // everything this thing started, stopped. react strictmode double-mounts in
   // dev, so a half-finished teardown means two sims running at once.
-  return function teardown() {
+  return function teardown(releaseContext = true) {
     cancelAnimationFrame(rafId);
     clearInterval(idleSplatInterval);
     clearTimeout(idleTimeout);
@@ -1609,6 +1624,6 @@ export function initFluid(canvas, options = {}) {
     window.removeEventListener("mouseleave", onMouseLeave);
     window.removeEventListener("message", onThemeMessage);
     window.removeEventListener("touchstart", onTouchStart);
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    if (releaseContext) gl.getExtension("WEBGL_lose_context")?.loseContext();
   };
 }

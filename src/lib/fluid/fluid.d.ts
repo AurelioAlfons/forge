@@ -7,6 +7,19 @@ export type FluidOptions = {
    * Defaults to full force when omitted.
    */
   getPointerInfluence?: () => number;
+  transparent?: boolean;
+  initialSplats?: number;
+  idleSplats?: boolean;
+  ignoreSelector?: string;
+  tuning?: Partial<{
+    simResolution: number;
+    dyeResolution: number;
+    densityDissipation: number;
+    velocityDissipation: number;
+    curl: number;
+    splatRadius: number;
+    splatForce: number;
+  }>;
 };
 
 /**
@@ -18,4 +31,4 @@ export type FluidOptions = {
 export function initFluid(
   canvas: HTMLCanvasElement,
   options?: FluidOptions,
-): () => void;
+): (releaseContext?: boolean) => void;
