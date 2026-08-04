@@ -35,10 +35,17 @@ export function PcSequenceSection() {
     const section = sectionRef.current;
     if (!canvas || !stage || !section || !ready) return;
 
+    const profileIntro = stage.querySelector<HTMLElement>(
+      "[data-profile-intro]",
+    );
+    const socialLinks = stage.querySelector<HTMLElement>("[data-social-links]");
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const triggers: ScrollTrigger[] = [];
+    let introTween: gsap.core.Tween | null = null;
+    let socialTween: gsap.core.Tween | null = null;
     let rafId = 0;
 
     // ===== SIZING =====
@@ -114,6 +121,48 @@ export function PcSequenceSection() {
           },
         }),
       );
+
+      if (profileIntro) {
+        // the intro follows the scroll in both directions, so coming home
+        // restores the exact authored position instead of replaying a reveal
+        introTween = gsap.to(profileIntro, {
+          yPercent: -220,
+          autoAlpha: 0,
+          ease: "none",
+          paused: true,
+        });
+
+        triggers.push(
+          ScrollTrigger.create({
+            trigger: section!,
+            start: "top top",
+            end: () => `+=${window.innerHeight * 0.8}`,
+            animation: introTween,
+            scrub: SCRUB,
+            invalidateOnRefresh: true,
+          }),
+        );
+      }
+
+      if (socialLinks) {
+        socialTween = gsap.to(socialLinks, {
+          x: () => window.innerWidth,
+          autoAlpha: 0,
+          ease: "none",
+          paused: true,
+        });
+
+        triggers.push(
+          ScrollTrigger.create({
+            trigger: section!,
+            start: "top top",
+            end: () => `+=${window.innerHeight * 0.8}`,
+            animation: socialTween,
+            scrub: SCRUB,
+            invalidateOnRefresh: true,
+          }),
+        );
+      }
     }
 
     rafId = requestAnimationFrame(tick);
@@ -123,6 +172,18 @@ export function PcSequenceSection() {
       window.removeEventListener("resize", resize);
       // only our own triggers — getAll() would kill anything else on the page
       for (const t of triggers) t.kill();
+      introTween?.kill();
+      socialTween?.kill();
+      if (profileIntro) {
+        gsap.set(profileIntro, {
+          clearProps: "transform,opacity,visibility",
+        });
+      }
+      if (socialLinks) {
+        gsap.set(socialLinks, {
+          clearProps: "transform,opacity,visibility",
+        });
+      }
     };
   }, [frames, ready, reduced]);
 
