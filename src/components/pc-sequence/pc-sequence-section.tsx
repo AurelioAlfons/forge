@@ -66,7 +66,28 @@ export function PcSequenceSection() {
     // ===== DRAW =====
     // contain-fit and centred, same scale as before the background cleanup
     function draw(index: number) {
-      const img = frames[index];
+      let drawableIndex = index;
+      let img = frames[drawableIndex];
+
+      // Fast scrolling can outrun the background preload. Keep the closest
+      // available image visible and retry the requested frame on the next tick.
+      if (!img?.naturalWidth) {
+        for (let distance = 1; distance < frames.length; distance += 1) {
+          const before = frames[index - distance];
+          const after = frames[index + distance];
+          if (before?.naturalWidth) {
+            drawableIndex = index - distance;
+            img = before;
+            break;
+          }
+          if (after?.naturalWidth) {
+            drawableIndex = index + distance;
+            img = after;
+            break;
+          }
+        }
+      }
+
       if (!img || !img.naturalWidth) return;
 
       const w = stage!.clientWidth;
@@ -80,7 +101,9 @@ export function PcSequenceSection() {
       ctx!.clearRect(0, 0, w, h);
       ctx!.drawImage(img, dx, dy, dw, dh);
 
-      drawnIndexRef.current = index;
+      // Preserve the requested index when we used a fallback so tick() keeps
+      // checking until the exact frame becomes available.
+      drawnIndexRef.current = drawableIndex === index ? index : -1;
     }
 
     // ===== FRAME LOOP =====

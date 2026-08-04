@@ -23,7 +23,7 @@ export function PlaylistPanel({
       ref={panelRef}
       id="music-playlist-panel"
       aria-label="Playlist"
-      className="border-border/80 p-2xs absolute top-[calc(100%+0.5rem)] left-0 max-h-[55svh] w-full overflow-y-auto rounded-sm border bg-black/75 shadow-2xl backdrop-blur-xl sm:w-[26rem]"
+      className="border-border/80 p-2xs absolute top-[calc(100%+0.5rem)] left-0 max-h-[55svh] w-full overflow-y-auto rounded-sm border bg-black/75 shadow-2xl backdrop-blur-xl sm:w-104"
     >
       {tracks.length === 0 ? (
         <div className="px-s py-m">
