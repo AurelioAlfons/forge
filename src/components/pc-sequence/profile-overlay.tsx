@@ -14,13 +14,17 @@ const socialLinks = [
   },
 ] as const;
 
-export function ProfileOverlay() {
+type ProfileOverlayProps = {
+  hidden: boolean;
+};
+
+export function ProfileOverlay({ hidden }: ProfileOverlayProps) {
   return (
     <div className="pointer-events-none absolute inset-10 z-10">
       <section
         data-profile-intro
         aria-labelledby="intro-heading"
-        className="absolute top-[clamp(6rem,13svh,8rem)] left-4 w-[min(26rem,calc(100vw-2rem))] sm:left-[clamp(4.75rem,6vw,6rem)]"
+        className={`absolute top-[clamp(6rem,13svh,8rem)] left-4 w-[min(26rem,calc(100vw-2rem))] sm:left-[clamp(4.75rem,6vw,6rem)] ${hidden ? "invisible opacity-0" : ""}`}
       >
         <h1
           id="intro-heading"
@@ -38,7 +42,7 @@ export function ProfileOverlay() {
       <nav
         data-social-links
         aria-label="Social profiles"
-        className="pointer-events-auto absolute bottom-[max(env(safe-area-inset-bottom),1.5rem)] left-16 flex items-center gap-10.5 sm:left-[clamp(5.75rem,6vw,6rem)]"
+        className={`pointer-events-auto absolute bottom-[max(env(safe-area-inset-bottom),1.5rem)] left-16 flex items-center gap-10.5 sm:left-[clamp(5.75rem,6vw,6rem)] ${hidden ? "invisible opacity-0" : ""}`}
       >
         {socialLinks.map(({ href, label, icon: Icon }) => (
           <a

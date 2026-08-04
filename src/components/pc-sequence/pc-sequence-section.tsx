@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
@@ -14,6 +14,7 @@ import {
 import { useFrameSequence } from "./use-frame-sequence";
 import { useMediaQuery } from "./use-media-query";
 import { ProfileOverlay } from "./profile-overlay";
+import { BootLoader } from "./boot-loader";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -25,15 +26,35 @@ export function PcSequenceSection() {
   // scroll progress lives in a ref so scrubbing doesn't re-render the section
   const progressRef = useRef(0);
   const drawnIndexRef = useRef(-1);
+  const [bootState, setBootState] = useState<"pending" | "reveal" | "ready">(
+    "pending",
+  );
+  const [showBootLoader, setShowBootLoader] = useState(true);
 
   const reduced = useMediaQuery(REDUCED_MOTION_QUERY);
   const { frames, ready, progress } = useFrameSequence();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (sessionStorage.getItem("forge-boot-seen")) {
+      queueMicrotask(() => {
+        setShowBootLoader(false);
+        setBootState("ready");
+      });
+    }
+  }, []);
+
+  const finishBoot = useCallback(() => {
+    setShowBootLoader(false);
+    setBootState(reduced ? "ready" : "reveal");
+  }, [reduced]);
+
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     const section = sectionRef.current;
-    if (!canvas || !stage || !section || !ready) return;
+    if (!canvas || !stage || !section || !ready || bootState === "pending") {
+      return;
+    }
 
     const profileIntro = stage.querySelector<HTMLElement>(
       "[data-profile-intro]",
@@ -46,6 +67,7 @@ export function PcSequenceSection() {
     const triggers: ScrollTrigger[] = [];
     let introTween: gsap.core.Tween | null = null;
     let socialTween: gsap.core.Tween | null = null;
+    let revealTimeline: gsap.core.Timeline | null = null;
     let rafId = 0;
 
     // ===== SIZING =====
@@ -124,26 +146,8 @@ export function PcSequenceSection() {
     resize();
     window.addEventListener("resize", resize);
 
-    // ===== SCROLL =====
-    // reduced motion gets a single frame and no pin
-    if (reduced) {
-      progressRef.current = 0;
-      draw(0);
-    } else {
-      triggers.push(
-        ScrollTrigger.create({
-          trigger: section!,
-          start: "top top",
-          end: `+=${window.innerHeight * SCROLL_LENGTH_VH}`,
-          pin: stage!,
-          pinSpacing: false,
-          scrub: SCRUB,
-          invalidateOnRefresh: true,
-          onUpdate: (self) => {
-            progressRef.current = self.progress;
-          },
-        }),
-      );
+    function installScrollMotion() {
+      if (reduced) return;
 
       if (profileIntro) {
         // the intro follows the scroll in both directions, so coming home
@@ -188,6 +192,57 @@ export function PcSequenceSection() {
       }
     }
 
+    // ===== SCROLL =====
+    // reduced motion gets a single frame and no pin
+    if (reduced) {
+      progressRef.current = 0;
+      draw(0);
+    } else {
+      triggers.push(
+        ScrollTrigger.create({
+          trigger: section!,
+          start: "top top",
+          end: `+=${window.innerHeight * SCROLL_LENGTH_VH}`,
+          pin: stage!,
+          pinSpacing: false,
+          scrub: SCRUB,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            progressRef.current = self.progress;
+          },
+        }),
+      );
+    }
+
+    if (bootState === "reveal" && !reduced) {
+      revealTimeline = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        onComplete: () => {
+          setBootState("ready");
+          installScrollMotion();
+          ScrollTrigger.refresh();
+        },
+      });
+      if (profileIntro) {
+        revealTimeline.fromTo(
+          profileIntro,
+          { yPercent: -115, autoAlpha: 0 },
+          { yPercent: 0, autoAlpha: 1, duration: 0.9 },
+          0,
+        );
+      }
+      if (socialLinks) {
+        revealTimeline.fromTo(
+          socialLinks,
+          { x: window.innerWidth, autoAlpha: 0 },
+          { x: 0, autoAlpha: 1, duration: 0.9 },
+          0.12,
+        );
+      }
+    } else {
+      installScrollMotion();
+    }
+
     rafId = requestAnimationFrame(tick);
 
     return () => {
@@ -197,6 +252,7 @@ export function PcSequenceSection() {
       for (const t of triggers) t.kill();
       introTween?.kill();
       socialTween?.kill();
+      revealTimeline?.kill();
       if (profileIntro) {
         gsap.set(profileIntro, {
           clearProps: "transform,opacity,visibility",
@@ -208,7 +264,7 @@ export function PcSequenceSection() {
         });
       }
     };
-  }, [frames, ready, reduced]);
+  }, [bootState, frames, ready, reduced]);
 
   return (
     <section
@@ -227,7 +283,7 @@ export function PcSequenceSection() {
           className="pointer-events-none absolute inset-0 h-full w-full"
         />
 
-        <ProfileOverlay />
+        <ProfileOverlay hidden={bootState === "pending"} />
 
         {!ready && (
           <div className="text-muted text-step--1 bottom-l absolute inset-x-0 text-center font-mono">
@@ -235,6 +291,14 @@ export function PcSequenceSection() {
           </div>
         )}
       </div>
+
+      {showBootLoader && (
+        <BootLoader
+          loadProgress={progress}
+          reducedMotion={reduced}
+          onComplete={finishBoot}
+        />
+      )}
     </section>
   );
 }
