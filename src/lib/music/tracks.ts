@@ -3,6 +3,13 @@ import type { Track } from "./types";
 // drop local files into public/music, then add their details here
 export const tracks: readonly Track[] = [
   {
+    id: "delete-ya",
+    title: "Delete Ya",
+    artist: "Djo",
+    src: "/music/audio/Delete Ya - Djo.mp3",
+    cover: "/music/covers/Delete Ya.jpg",
+  },
+  {
     id: "power",
     title: "POWER",
     artist: "G-DRAGON",
@@ -22,13 +29,6 @@ export const tracks: readonly Track[] = [
     artist: "Kanye West",
     src: "/music/audio/Runaway - Kanye West.mp3",
     cover: "/music/covers/Runaway.jpg",
-  },
-  {
-    id: "delete-ya",
-    title: "Delete Ya",
-    artist: "Djo",
-    src: "/music/audio/Delete Ya - Djo.mp3",
-    cover: "/music/covers/Delete Ya.jpg",
   },
   {
     id: "neon-guts",
