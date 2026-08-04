@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { tracks } from "@/lib/music/tracks";
 import { NowPlaying } from "./now-playing";
+import { PlaybackTimeline } from "./playback-timeline";
 import { PlaylistPanel } from "./playlist-panel";
 
 const iconButton =
@@ -121,77 +122,90 @@ export function MusicPlayer() {
   return (
     <div
       ref={rootRef}
-      className="fixed inset-x-2 top-[max(env(safe-area-inset-top),0.5rem)] z-50 mx-auto max-w-[78rem] sm:inset-x-4"
+      className="fixed inset-x-2 top-[max(env(safe-area-inset-top),0.5rem)] z-50 mx-auto max-w-312 sm:inset-x-4"
     >
-      <div className="border-border/80 gap-2xs px-2xs sm:px-xs grid min-h-14 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg sm:min-h-16 sm:grid-cols-[3rem_minmax(0,1fr)_12rem]">
-        <button
-          ref={playlistButtonRef}
-          type="button"
-          aria-label={panelOpen ? "Close playlist" : "Open playlist"}
-          aria-expanded={panelOpen}
-          aria-controls="music-playlist-panel"
-          onClick={() => setPanelOpen((open) => !open)}
-          className={`${iconButton} text-fg`}
-        >
-          <ChevronDown
-            aria-hidden="true"
-            className={`size-5 transition-transform ${panelOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-
-        <div className="px-3xs min-w-0 overflow-hidden">
-          <NowPlaying key={currentTrack?.id ?? "empty"} track={currentTrack} />
-        </div>
-
-        <div className="flex items-center justify-end">
+      <div className="border-border/80 px-2xs sm:px-xs rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
+        <div className="relative z-10 grid min-h-14 grid-cols-[2.75rem_minmax(7rem,1fr)_minmax(4.5rem,0.8fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">
           <button
+            ref={playlistButtonRef}
             type="button"
-            aria-label="Previous track"
-            title="Previous track"
-            disabled={!hasTracks}
-            onClick={() => moveTrack(-1)}
-            className={`${iconButton} hidden sm:grid`}
-          >
-            <SkipBack aria-hidden="true" className="size-5" />
-          </button>
-          <button
-            type="button"
-            aria-label={isPlaying ? "Pause" : "Play"}
-            title={isPlaying ? "Pause" : "Play"}
-            disabled={!hasTracks}
-            onClick={togglePlay}
+            aria-label={panelOpen ? "Close playlist" : "Open playlist"}
+            aria-expanded={panelOpen}
+            aria-controls="music-playlist-panel"
+            onClick={() => setPanelOpen((open) => !open)}
             className={`${iconButton} text-fg`}
           >
-            {isPlaying ? (
-              <Pause aria-hidden="true" className="size-5 fill-current" />
-            ) : (
-              <Play aria-hidden="true" className="size-5 fill-current" />
-            )}
+            <ChevronDown
+              aria-hidden="true"
+              className={`size-5 transition-transform ${panelOpen ? "rotate-180" : ""}`}
+            />
           </button>
-          <button
-            type="button"
-            aria-label="Next track"
-            title="Next track"
-            disabled={!hasTracks}
-            onClick={() => moveTrack(1)}
-            className={`${iconButton} hidden sm:grid`}
-          >
-            <SkipForward aria-hidden="true" className="size-5" />
-          </button>
-          <button
-            type="button"
-            aria-label={isMuted ? "Unmute" : "Mute"}
-            title={isMuted ? "Unmute" : "Mute"}
-            disabled={!hasTracks}
-            onClick={toggleMute}
-            className={iconButton}
-          >
-            {isMuted ? (
-              <VolumeX aria-hidden="true" className="size-5" />
-            ) : (
-              <Volume2 aria-hidden="true" className="size-5" />
-            )}
-          </button>
+
+          <div className="px-3xs min-w-0 overflow-hidden">
+            <NowPlaying
+              key={currentTrack?.id ?? "empty"}
+              track={currentTrack}
+            />
+          </div>
+
+          <PlaybackTimeline
+            key={currentTrack?.id ?? "empty"}
+            audioRef={audioRef}
+            hasTrack={hasTracks}
+            trackTitle={currentTrack?.title}
+            trackSrc={currentTrack?.src}
+          />
+
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              aria-label="Previous track"
+              title="Previous track"
+              disabled={!hasTracks}
+              onClick={() => moveTrack(-1)}
+              className={`${iconButton} hidden sm:grid`}
+            >
+              <SkipBack aria-hidden="true" className="size-5" />
+            </button>
+            <button
+              type="button"
+              aria-label={isPlaying ? "Pause" : "Play"}
+              title={isPlaying ? "Pause" : "Play"}
+              disabled={!hasTracks}
+              onClick={togglePlay}
+              className={`${iconButton} text-fg`}
+            >
+              {isPlaying ? (
+                <Pause aria-hidden="true" className="size-5 fill-current" />
+              ) : (
+                <Play aria-hidden="true" className="size-5 fill-current" />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label="Next track"
+              title="Next track"
+              disabled={!hasTracks}
+              onClick={() => moveTrack(1)}
+              className={`${iconButton} hidden sm:grid`}
+            >
+              <SkipForward aria-hidden="true" className="size-5" />
+            </button>
+            <button
+              type="button"
+              aria-label={isMuted ? "Unmute" : "Mute"}
+              title={isMuted ? "Unmute" : "Mute"}
+              disabled={!hasTracks}
+              onClick={toggleMute}
+              className={iconButton}
+            >
+              {isMuted ? (
+                <VolumeX aria-hidden="true" className="size-5" />
+              ) : (
+                <Volume2 aria-hidden="true" className="size-5" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
