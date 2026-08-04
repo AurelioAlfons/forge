@@ -13,6 +13,7 @@ import {
 } from "@/lib/pc-sequence/config";
 import { useFrameSequence } from "./use-frame-sequence";
 import { useMediaQuery } from "./use-media-query";
+import { ProfileOverlay } from "./profile-overlay";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -141,6 +142,8 @@ export function PcSequenceSection() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 h-full w-full"
         />
+
+        <ProfileOverlay />
 
         {!ready && (
           <div className="text-muted text-step--1 bottom-l absolute inset-x-0 text-center font-mono">

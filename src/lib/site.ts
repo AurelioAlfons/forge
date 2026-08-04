@@ -3,9 +3,10 @@
  * Edit here rather than hardcoding strings into components.
  */
 export const site = {
-  name: "Aurelio Alfons",
-  role: "Software Engineer",
-  description: "Portfolio and personal site of Aurelio Alfons.",
+  name: "Aurelio Hevi Alfons",
+  role: "Emerging Software Developer",
+  description:
+    "Emerging software developer who enjoys building cool projects and exploring AI, LLMs, and automation. Always learning, experimenting.",
   url: "https://forge.vercel.app",
   nav: [
     { href: "/#work", label: "Work" },
@@ -14,7 +15,7 @@ export const site = {
   ],
   social: {
     github: "https://github.com/AurelioAlfons",
-    // linkedin sits out until i've got the real slug, dead link is worse than none
+    linkedin: "https://www.linkedin.com/in/aurelio-alfons",
     email: "yuroalfons0407@gmail.com",
   },
 } as const;
