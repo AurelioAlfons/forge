@@ -122,9 +122,9 @@ export function MusicPlayer() {
   return (
     <div
       ref={rootRef}
-      className="fixed inset-x-2 top-[max(env(safe-area-inset-top),0.5rem)] z-50 mx-auto max-w-312 sm:inset-x-4"
+      className="fixed inset-x-2 top-[max(env(safe-area-inset-top),1.8rem)] z-50 mx-auto max-w-312 sm:inset-x-4"
     >
-      <div className="border-border/80 px-2xs sm:px-xs rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
+      <div className="border-border/80 px-2x\ sm:px-xs rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
         <div className="relative z-10 grid min-h-14 grid-cols-[2.75rem_minmax(7rem,1fr)_minmax(4.5rem,0.8fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">
           <button
             ref={playlistButtonRef}

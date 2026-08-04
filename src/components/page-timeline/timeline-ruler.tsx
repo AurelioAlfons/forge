@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
@@ -113,32 +112,38 @@ export function TimelineRuler({
       <nav
         aria-label="Page timeline links"
         aria-hidden={!isOpen}
-        className="absolute top-4 bottom-4 left-[calc(100%+0.5rem)] w-32"
+        className={`border-border/90 absolute top-1/2 left-[calc(100%+0.75rem)] w-44 -translate-y-1/2 rounded-xl border bg-[#111]/95 p-2.5 shadow-[0_1rem_3rem_rgba(0,0,0,0.55)] backdrop-blur-xl transition-[opacity,translate] duration-200 motion-reduce:transition-none ${
+          isOpen
+            ? "pointer-events-auto translate-x-0 opacity-100"
+            : "pointer-events-none -translate-x-2 opacity-0"
+        }`}
       >
-        {timelineItems.map((item) => {
-          const active = item.id === activeId;
-          const style = {
-            top: `${item.progress * 100}%`,
-          } as CSSProperties;
+        <p className="px-2.5 pt-1 pb-2 font-mono text-[0.65rem] tracking-[0.18em] text-[#dfa812] uppercase">
+          Navigation
+        </p>
 
-          return (
-            <a
-              key={item.id}
-              href={`#${item.id}`}
-              tabIndex={isOpen ? 0 : -1}
-              aria-current={active ? "location" : undefined}
-              onClick={(event) => onLinkActivate(event, item)}
-              style={style}
-              className={`border-border/80 absolute left-0 -translate-y-1/2 rounded-sm border bg-black/85 px-3 py-1.5 text-xs font-medium whitespace-nowrap backdrop-blur-md transition-[opacity,translate,color] duration-200 motion-reduce:transition-none ${
-                isOpen
-                  ? "pointer-events-auto translate-x-0 opacity-100"
-                  : "pointer-events-none -translate-x-2 opacity-0"
-              } ${active ? "text-fg" : "text-muted hover:text-fg"}`}
-            >
-              {item.label}
-            </a>
-          );
-        })}
+        <div className="flex flex-col gap-0.5">
+          {timelineItems.map((item) => {
+            const active = item.id === activeId;
+
+            return (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                tabIndex={isOpen ? 0 : -1}
+                aria-current={active ? "location" : undefined}
+                onClick={(event) => onLinkActivate(event, item)}
+                className={`relative flex min-h-9 items-center rounded-md px-2.5 text-xs font-medium transition-[background-color,box-shadow,color] duration-150 outline-none motion-reduce:transition-none ${
+                  active
+                    ? "text-fg bg-white/10 shadow-[inset_2px_0_0_#dfa812,0_0_1.25rem_rgba(223,168,18,0.08)]"
+                    : "text-muted hover:text-fg focus-visible:text-fg hover:bg-white/8 hover:shadow-[0_0_1rem_rgba(255,255,255,0.04)] focus-visible:bg-white/8 focus-visible:shadow-[inset_2px_0_0_#dfa812,0_0_1rem_rgba(223,168,18,0.08)]"
+                }`}
+              >
+                {item.label}
+              </a>
+            );
+          })}
+        </div>
       </nav>
 
       <style jsx>{`
