@@ -9,10 +9,7 @@ export type FrameSequence = {
   progress: number;
 };
 
-/**
- * Preloads and decodes the whole frame set before the scrub is allowed to run.
- * Scrubbing through undecoded images is what makes these sequences stutter.
- */
+/** Preloads the frame files before the scrub is allowed to run. */
 export function useFrameSequence() {
   const [state, setState] = useState<FrameSequence>({
     frames: [],
@@ -23,27 +20,41 @@ export function useFrameSequence() {
   useEffect(() => {
     let cancelled = false;
     let loaded = 0;
+    let nextIndex = 0;
     const frames: HTMLImageElement[] = [];
 
     async function load() {
-      const jobs = Array.from({ length: FRAME_COUNT }, (_, i) => {
-        const img = new Image();
-        img.src = framePath(i);
-        frames[i] = img;
+      async function worker() {
+        while (!cancelled && nextIndex < FRAME_COUNT) {
+          const i = nextIndex;
+          nextIndex += 1;
 
-        // decode() rather than onload — onload fires before the browser has
-        // actually turned the bytes into something drawable
-        return img
-          .decode()
-          .catch(() => {})
-          .then(() => {
+          // four at a time keeps the browser breathing while the set loads
+          const img = new Image();
+          img.decoding = "async";
+          frames[i] = img;
+
+          await new Promise<void>((resolve) => {
+            let settled = false;
+            const settle = () => {
+              if (settled) return;
+              settled = true;
+              resolve();
+            };
+
+            img.addEventListener("load", settle, { once: true });
+            img.addEventListener("error", settle, { once: true });
+            img.src = framePath(i);
+            if (img.complete) settle();
+          }).then(() => {
             if (cancelled) return;
             loaded += 1;
             setState((s) => ({ ...s, progress: loaded / FRAME_COUNT }));
           });
-      });
+        }
+      }
 
-      await Promise.all(jobs);
+      await Promise.all(Array.from({ length: 4 }, () => worker()));
       if (!cancelled) setState({ frames, ready: true, progress: 1 });
     }
 
@@ -51,7 +62,7 @@ export function useFrameSequence() {
 
     return () => {
       cancelled = true;
-      // let the decoded bitmaps go, otherwise they sit in memory per remount
+      // let the loaded images go, otherwise they sit in memory per remount
       for (const img of frames) img.src = "";
     };
   }, []);

@@ -4,11 +4,12 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
-  FRAME_COUNT,
   MAX_DPR,
+  PLAYBACK_FRAME_COUNT,
   REDUCED_MOTION_QUERY,
   SCROLL_LENGTH_VH,
   SCRUB,
+  playbackFrameIndex,
 } from "@/lib/pc-sequence/config";
 import { useFrameSequence } from "./use-frame-sequence";
 import { useMediaQuery } from "./use-media-query";
@@ -75,14 +76,14 @@ export function PcSequenceSection() {
     }
 
     // ===== FRAME LOOP =====
-    // run out to the exploded frame, then walk the same frames home
+    // explode, rebuild, zoom in, then rewind the zoom back home
     function tick() {
-      const lastIndex = FRAME_COUNT - 1;
+      const lastStep = PLAYBACK_FRAME_COUNT - 1;
       const step = Math.min(
-        lastIndex * 2,
-        Math.max(0, Math.round(progressRef.current * lastIndex * 2)),
+        lastStep,
+        Math.max(0, Math.round(progressRef.current * lastStep)),
       );
-      const index = step <= lastIndex ? step : lastIndex * 2 - step;
+      const index = playbackFrameIndex(step);
 
       if (index !== drawnIndexRef.current) draw(index);
 
