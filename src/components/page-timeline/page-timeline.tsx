@@ -12,6 +12,8 @@ import {
 } from "react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useIntro } from "@/components/intro/use-intro";
+import { getSkillsAnchorScrollY } from "@/lib/skills/config";
+import { getProjectsAnchorScrollY } from "@/lib/projects/config";
 import {
   timelineItems,
   type TimelineItem,
@@ -26,12 +28,32 @@ function clamp(value: number) {
   return Math.min(1, Math.max(0, value));
 }
 
-function nearestItem(progress: number) {
-  const index = Math.min(
-    timelineItems.length - 1,
-    Math.max(0, Math.round(progress * (timelineItems.length - 1))),
-  );
-  return timelineItems[index];
+// "skills" doesn't have a fixed fraction — it rides the fan spin, so its real
+// position depends on document height like everything else. every other stop
+// stays a static guess until step 0's full architecture pass.
+type DynamicProgress = { projects: number; skills: number };
+
+function resolvedProgress(item: TimelineItem, dynamic: DynamicProgress) {
+  if (item.id === "projects") return dynamic.projects;
+  if (item.id === "skills") return dynamic.skills;
+  return item.progress;
+}
+
+// nearest by nudged position, not by index. index-rounding assumed the five
+// stops sit at even fractions, which skills no longer does once resolved.
+function nearestItem(progress: number, dynamic: DynamicProgress): TimelineItem {
+  let closest: TimelineItem = timelineItems[0];
+  let closestDistance = Infinity;
+
+  for (const item of timelineItems) {
+    const distance = Math.abs(progress - resolvedProgress(item, dynamic));
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closest = item;
+    }
+  }
+
+  return closest;
 }
 
 export function PageTimeline() {
@@ -41,6 +63,13 @@ export function PageTimeline() {
   const markerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
   const maxScrollRef = useRef(0);
+  // starts at the old static guess so nothing breaks before the first measure
+  const skillsProgressRef = useRef<number>(
+    timelineItems.find((item) => item.id === "skills")?.progress ?? 0.5,
+  );
+  const projectsProgressRef = useRef<number>(
+    timelineItems.find((item) => item.id === "projects")?.progress ?? 0.25,
+  );
   const trackRectRef = useRef<DOMRect | null>(null);
   const activeIdRef = useRef<TimelineItem["id"]>(timelineItems[0].id);
   const pointerIdRef = useRef<number | null>(null);
@@ -82,6 +111,16 @@ export function PageTimeline() {
       document.documentElement.scrollHeight - window.innerHeight,
     );
     trackRectRef.current = trackRef.current?.getBoundingClientRect() ?? null;
+
+    const pcSection = document.getElementById("pc-sequence");
+    if (pcSection && maxScrollRef.current > 0) {
+      projectsProgressRef.current = clamp(
+        getProjectsAnchorScrollY(pcSection) / maxScrollRef.current,
+      );
+      skillsProgressRef.current = clamp(
+        getSkillsAnchorScrollY(pcSection) / maxScrollRef.current,
+      );
+    }
   }, []);
 
   const applyProgress = useCallback((nextProgress: number) => {
@@ -94,7 +133,10 @@ export function PageTimeline() {
       String(Math.round(progress * 100)),
     );
 
-    const nextItem = nearestItem(progress);
+    const nextItem = nearestItem(progress, {
+      projects: projectsProgressRef.current,
+      skills: skillsProgressRef.current,
+    });
     if (nextItem.id === activeIdRef.current) return;
     activeIdRef.current = nextItem.id;
     setActiveId(nextItem.id);
@@ -116,6 +158,22 @@ export function PageTimeline() {
       });
     },
     [applyProgress, measure],
+  );
+
+  // measures first so a resized/rescrolled page resolves "skills" against
+  // where it actually sits right now, not a stale reading from last measure
+  const scrollToItem = useCallback(
+    (item: TimelineItem, behavior: ScrollBehavior = "auto") => {
+      measure();
+      scrollToProgress(
+        resolvedProgress(item, {
+          projects: projectsProgressRef.current,
+          skills: skillsProgressRef.current,
+        }),
+        behavior,
+      );
+    },
+    [measure, scrollToProgress],
   );
 
   const progressFromPointer = useCallback(
@@ -154,7 +212,7 @@ export function PageTimeline() {
     function restoreSupportedHash() {
       const hash = window.location.hash.slice(1);
       const item = timelineItems.find((entry) => entry.id === hash);
-      if (item) scrollToProgress(item.progress, "auto");
+      if (item) scrollToItem(item, "auto");
       else syncFromPage();
     }
 
@@ -171,10 +229,13 @@ export function PageTimeline() {
     const resizeObserver = new ResizeObserver(refreshMeasurements);
     resizeObserver.observe(document.documentElement);
 
-    // two frames lets the pc pin settle before a direct hash jump
-    settleRaf = requestAnimationFrame(() => {
-      finalSettleRaf = requestAnimationFrame(restoreSupportedHash);
-    });
+    // Wait for the intro lock to release before restoring a deep link. During
+    // boot the temporary locked layout can report a false section offset.
+    if (phase === "ready") {
+      settleRaf = requestAnimationFrame(() => {
+        finalSettleRaf = requestAnimationFrame(restoreSupportedHash);
+      });
+    }
 
     return () => {
       window.removeEventListener("scroll", scheduleSync);
@@ -187,7 +248,7 @@ export function PageTimeline() {
       cancelAnimationFrame(settleRaf);
       cancelAnimationFrame(finalSettleRaf);
     };
-  }, [measure, scrollToProgress, syncFromPage]);
+  }, [measure, phase, scrollToItem, syncFromPage]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -282,7 +343,7 @@ export function PageTimeline() {
   ) {
     event.preventDefault();
     const behavior = reducedMotionRef.current ? "auto" : "smooth";
-    scrollToProgress(item.progress, behavior);
+    scrollToItem(item, behavior);
     window.history.replaceState(
       null,
       "",

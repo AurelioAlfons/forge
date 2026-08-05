@@ -11,7 +11,21 @@ import {
   SCRUB,
   playbackFrameIndex,
 } from "@/lib/pc-sequence/config";
+import {
+  DEMATERIALIZE_FRACTION,
+  HEX_TWEEN_DURATION,
+  MATERIALIZE_FRACTION,
+  SPIN_FORWARD_PROGRESS,
+  computeHoneycombGeometry,
+} from "@/lib/skills/config";
+import { SKILL_COUNT, skills } from "@/lib/skills/skills-data";
 import { useIntro, useIntroHoldProgress } from "@/components/intro/use-intro";
+import { SkillsOverlay } from "@/components/skills/skills-overlay";
+import { ProjectsInterlude } from "@/components/projects/projects-interlude";
+import {
+  PROJECTS_PROGRESS,
+  projectsPanelYPercent,
+} from "@/lib/projects/config";
 import { useFrameSequence } from "./use-frame-sequence";
 import { ProfileOverlay } from "./profile-overlay";
 import { BootLoader } from "./boot-loader";
@@ -130,6 +144,9 @@ export function PcSequenceSection() {
       "[data-profile-intro]",
     );
     const socialLinks = stage.querySelector<HTMLElement>("[data-social-links]");
+    const projectsPanel = stage.querySelector<HTMLElement>(
+      "[data-projects-interlude]",
+    );
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -139,6 +156,79 @@ export function PcSequenceSection() {
     let socialTween: gsap.core.Tween | null = null;
     let rafId = 0;
     let refreshRafId = 0;
+
+    // ===== SKILLS HONEYCOMB =====
+    // one paused timeline scrubbed by the frame loop below. a second
+    // scrolltrigger here would just fight the pin over the same gesture.
+    // three acts on one 0..1 timeline: tiles materialize one by one, hold
+    // complete, then dematerialize in the same order — so by the time the fan
+    // starts pulling back out, nothing is left on screen.
+    const skillTiles: HTMLElement[] = [];
+    const skillsTimeline = gsap.timeline({ paused: true });
+    const lastIndex = SKILL_COUNT - 1;
+    // spread offsets so the final tween in each act lands on its boundary
+    const materializeStep =
+      lastIndex > 0
+        ? (MATERIALIZE_FRACTION - HEX_TWEEN_DURATION) / lastIndex
+        : 0;
+    const dematerializeStart = 1 - DEMATERIALIZE_FRACTION;
+    const dematerializeStep =
+      lastIndex > 0
+        ? (DEMATERIALIZE_FRACTION - HEX_TWEEN_DURATION) / lastIndex
+        : 0;
+
+    for (const skill of skills) {
+      const tile = stage.querySelector<HTMLElement>(
+        `[data-skill-hex="${skill.id}"]`,
+      );
+      if (!tile) continue;
+
+      skillTiles.push(tile);
+      const i = skill.order - 1;
+
+      skillsTimeline.fromTo(
+        tile,
+        { opacity: 0, scale: 0.6 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: HEX_TWEEN_DURATION,
+          ease: "back.out(1.7)",
+        },
+        i * materializeStep,
+      );
+      skillsTimeline.to(
+        tile,
+        {
+          opacity: 0,
+          scale: 0.6,
+          duration: HEX_TWEEN_DURATION,
+          ease: "back.in(1.4)",
+        },
+        dematerializeStart + i * dematerializeStep,
+      );
+    }
+
+    // mapRange happily extrapolates past its bounds, so the clamp is load-bearing
+    const toSkillProgress = gsap.utils.mapRange(
+      SPIN_FORWARD_PROGRESS.start,
+      SPIN_FORWARD_PROGRESS.end,
+      0,
+      1,
+    );
+    const clampUnit = gsap.utils.clamp(0, 1);
+    let lastSkillProgress = -1;
+
+    // ===== PROJECTS INTERLUDE =====
+    // The PC stays on its final exploded frame while this panel rises, rests,
+    // and clears upward. Reverse assembly only begins after the panel is gone.
+    const toProjectsProgress = gsap.utils.mapRange(
+      PROJECTS_PROGRESS.start,
+      PROJECTS_PROGRESS.end,
+      0,
+      1,
+    );
+    let lastProjectsProgress = -1;
 
     // ===== SIZING =====
     function resize() {
@@ -151,6 +241,17 @@ export function PcSequenceSection() {
       canvas!.style.width = `${w}px`;
       canvas!.style.height = `${h}px`;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // the honeycomb is sized off the fan as it actually lands on screen, so
+      // the cluster reads as tiled onto the disc, not stretched over the page
+      const comb = computeHoneycombGeometry(w, h);
+      stage!.style.setProperty("--skill-hex-s", `${comb.hex}px`);
+      stage!.style.setProperty("--skill-fan-r", `${comb.fanRadius}px`);
+      stage!.style.setProperty("--skill-gap", `${comb.gap}px`);
+      stage!.style.setProperty(
+        "--skill-label-display",
+        comb.showLabel ? "block" : "none",
+      );
 
       drawnIndexRef.current = -1; // force a redraw at the new size
     }
@@ -210,6 +311,27 @@ export function PcSequenceSection() {
 
       if (index !== drawnIndexRef.current) draw(index);
 
+      // the hexes ride the fan spin off the same progress value, just a
+      // different slice of it
+      if (!reducedMotion) {
+        const projectsProgress = clampUnit(
+          toProjectsProgress(progressRef.current),
+        );
+        if (projectsProgress !== lastProjectsProgress) {
+          if (projectsPanel) {
+            const y = projectsPanelYPercent(projectsProgress);
+            projectsPanel.style.transform = `translate3d(0, ${y}%, 0)`;
+          }
+          lastProjectsProgress = projectsProgress;
+        }
+
+        const skillProgress = clampUnit(toSkillProgress(progressRef.current));
+        if (skillProgress !== lastSkillProgress) {
+          skillsTimeline.progress(skillProgress);
+          lastSkillProgress = skillProgress;
+        }
+      }
+
       rafId = requestAnimationFrame(tick);
     }
 
@@ -267,6 +389,9 @@ export function PcSequenceSection() {
     if (reducedMotion) {
       progressRef.current = 0;
       draw(0);
+      // no honeycomb here at all — frozen tiles over a static assembled pc
+      // would just be a sticker on the page, and the sr-only list already
+      // carries every skill name for exactly this case
     } else if (phase === "ready") {
       // only pinned once the lock is off, otherwise the page measures short
       triggers.push(
@@ -305,6 +430,14 @@ export function PcSequenceSection() {
       // only our own triggers — getAll() would kill anything else on the page
       for (const t of triggers) t.kill();
 
+      // put the tiles back to the resting state react renders them at, rather
+      // than clearProps, which would strip the inline opacity and flash them on
+      skillsTimeline.kill();
+      if (skillTiles.length) gsap.set(skillTiles, { opacity: 0, scale: 0.6 });
+      if (projectsPanel) {
+        projectsPanel.style.transform = "translate3d(0, 100%, 0)";
+      }
+
       // only clear what this effect actually touched, so a late frame landing
       // mid-reveal can't wipe the other timeline's values
       if (introTween && profileIntro) {
@@ -321,6 +454,7 @@ export function PcSequenceSection() {
   return (
     <section
       ref={sectionRef}
+      id="pc-sequence"
       style={{ height: `${(SCROLL_LENGTH_VH + 1) * 100}svh` }}
     >
       <div
@@ -334,6 +468,10 @@ export function PcSequenceSection() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 h-full w-full"
         />
+
+        <SkillsOverlay />
+
+        <ProjectsInterlude />
 
         <ProfileOverlay phase={phase} />
       </div>

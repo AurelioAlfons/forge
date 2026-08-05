@@ -4,12 +4,18 @@
 export const ASSEMBLY_FRAME_COUNT = 80;
 export const ZOOM_FRAME_COUNT = 80;
 export const SPIN_START_ZOOM_FRAME = 40;
-export const SPIN_EXTRA_PLAYBACK_FRAMES = 120;
+export const SPIN_EXTRA_PLAYBACK_FRAMES = 240;
 export const ZOOM_PLAYBACK_FRAME_COUNT =
   ZOOM_FRAME_COUNT + SPIN_EXTRA_PLAYBACK_FRAMES;
 export const FRAME_COUNT = ASSEMBLY_FRAME_COUNT + ZOOM_FRAME_COUNT;
+/** Scroll beats reserved for the Projects page between explosion and rebuild. */
+export const PROJECTS_PLAYBACK_FRAMES = 120;
+export const REASSEMBLY_START_STEP =
+  ASSEMBLY_FRAME_COUNT + PROJECTS_PLAYBACK_FRAMES;
+export const ZOOM_LEG_START_STEP =
+  ASSEMBLY_FRAME_COUNT * 2 - 1 + PROJECTS_PLAYBACK_FRAMES;
 export const PLAYBACK_FRAME_COUNT =
-  ASSEMBLY_FRAME_COUNT * 2 - 1 + ZOOM_PLAYBACK_FRAME_COUNT * 2 - 1;
+  ZOOM_LEG_START_STEP + ZOOM_PLAYBACK_FRAME_COUNT * 2 - 1;
 
 /** Frames are 1-based and zero-padded: 01.webp. */
 export function framePath(index: number) {
@@ -44,14 +50,16 @@ function zoomPlaybackFrameIndex(step: number) {
 }
 
 export function playbackFrameIndex(step: number) {
-  const reverseEnd = ASSEMBLY_FRAME_COUNT * 2 - 1;
-  const zoomReverseStart = reverseEnd + ZOOM_PLAYBACK_FRAME_COUNT;
+  const zoomReverseStart = ZOOM_LEG_START_STEP + ZOOM_PLAYBACK_FRAME_COUNT;
 
-  // blow it apart, walk it home, zoom in, then rewind that close-up
+  // blow it apart, hold for Projects, walk it home, zoom in, then rewind
   if (step < ASSEMBLY_FRAME_COUNT) return step;
-  if (step < reverseEnd) return reverseEnd - step - 1;
+  if (step < REASSEMBLY_START_STEP) return ASSEMBLY_FRAME_COUNT - 1;
+  if (step < ZOOM_LEG_START_STEP) return ZOOM_LEG_START_STEP - step - 1;
   if (step < zoomReverseStart) {
-    return ASSEMBLY_FRAME_COUNT + zoomPlaybackFrameIndex(step - reverseEnd);
+    return (
+      ASSEMBLY_FRAME_COUNT + zoomPlaybackFrameIndex(step - ZOOM_LEG_START_STEP)
+    );
   }
 
   const reverseZoomStep =
@@ -64,8 +72,12 @@ export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 /** Retina is worth it, 3x is not. */
 export const MAX_DPR = 2;
 
-/** Scroll distance grows with the added spin beats, keeping the old pace. */
-export const SCROLL_LENGTH_VH = 5.25;
+/** Preserve the existing pixels-per-playback-step as new beats are inserted. */
+const PRE_PROJECTS_PLAYBACK_FRAME_COUNT = 798;
+const PRE_PROJECTS_SCROLL_LENGTH_VH = 7.5;
+export const SCROLL_LENGTH_VH =
+  (PRE_PROJECTS_SCROLL_LENGTH_VH * PLAYBACK_FRAME_COUNT) /
+  PRE_PROJECTS_PLAYBACK_FRAME_COUNT;
 
 /** How lazily the scrub chases the scrollbar. */
 export const SCRUB = 0.6;
