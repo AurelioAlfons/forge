@@ -1,5 +1,5 @@
 # forge
-
+<img width="1856" height="960" alt="image" src="https://github.com/user-attachments/assets/843d0c79-0176-468f-a387-be2dc23e33c4" />
 Personal portfolio site.
 
 ## Stack
