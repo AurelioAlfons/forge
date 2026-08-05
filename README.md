@@ -7,9 +7,11 @@
 ![GSAP](https://img.shields.io/badge/GSAP-3.15-88CE02?logo=greensock&logoColor=000000)
 ![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)
 
+<img width="1856" height="960" alt="Forge homepage" src="https://github.com/user-attachments/assets/843d0c79-0176-468f-a387-be2dc23e33c4" />
+
 My personal portfolio. The whole page is one scroll-driven sequence: a PC
-assembles and explodes, the camera pushes into its fan, and the sections ride
-that timeline instead of stacking underneath it.
+assembles and explodes, the camera pushes into its fan, and everything else
+rides that same timeline instead of stacking underneath it.
 
 ## Stack
 
