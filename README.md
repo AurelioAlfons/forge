@@ -10,14 +10,8 @@
 
 <img width="1856" height="960" alt="Forge homepage" src="https://github.com/user-attachments/assets/843d0c79-0176-468f-a387-be2dc23e33c4" />
 
-My personal portfolio. The whole page is one scroll-driven sequence: a PC
-assembles and explodes, the camera pushes into its fan, and everything else
-rides that same timeline instead of stacking underneath it.
+My personal portfolio.
 =======
-# forge
-<img width="1856" height="960" alt="image" src="https://github.com/user-attachments/assets/843d0c79-0176-468f-a387-be2dc23e33c4" />
-Personal portfolio site.
->>>>>>> f5fa9f750bf5fc4007a380fe939a180214156acb
 
 ## Stack
 
