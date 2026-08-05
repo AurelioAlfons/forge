@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { GATE_FRAME_PATH } from "@/lib/pc-sequence/config";
 import { site } from "@/lib/site";
 import "@/styles/globals.css";
 
@@ -50,6 +51,16 @@ export default function RootLayout({
       data-theme="dark"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* the one frame the intro waits on — start it during html parse
+            instead of after hydration */}
+        <link
+          rel="preload"
+          as="image"
+          href={GATE_FRAME_PATH}
+          fetchPriority="high"
+        />
+      </head>
       <body className="min-h-full">
         {/* keep the shell ready for the nav and the rest of the page later */}
         <div className="relative z-10 flex min-h-full flex-col">{children}</div>

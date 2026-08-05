@@ -1,4 +1,5 @@
 import { FaGithub, FaLinkedin } from "react-icons/fa";
+import type { IntroPhase } from "@/components/intro/intro-context";
 import { site } from "@/lib/site";
 
 const socialLinks = [
@@ -15,10 +16,15 @@ const socialLinks = [
 ] as const;
 
 type ProfileOverlayProps = {
-  hidden: boolean;
+  phase: IntroPhase;
 };
 
-export function ProfileOverlay({ hidden }: ProfileOverlayProps) {
+export function ProfileOverlay({ phase }: ProfileOverlayProps) {
+  const hidden = phase === "booting";
+  // set from the first render, so there is never a frame where a link is
+  // tabbable and then goes inert under someone's focus
+  const introRunning = phase !== "ready";
+
   return (
     <div className="pointer-events-none absolute inset-10 z-10">
       <section
@@ -42,7 +48,8 @@ export function ProfileOverlay({ hidden }: ProfileOverlayProps) {
       <nav
         data-social-links
         aria-label="Social profiles"
-        className={`pointer-events-auto absolute bottom-[max(env(safe-area-inset-bottom),1.5rem)] left-16 flex items-center gap-10.5 sm:left-[clamp(5.75rem,6vw,6rem)] ${hidden ? "invisible opacity-0" : ""}`}
+        inert={introRunning}
+        className={`absolute bottom-[max(env(safe-area-inset-bottom),1.5rem)] left-16 flex items-center gap-10.5 sm:left-[clamp(5.75rem,6vw,6rem)] ${introRunning ? "pointer-events-none" : "pointer-events-auto"} ${hidden ? "invisible opacity-0" : ""}`}
       >
         {socialLinks.map(({ href, label, icon: Icon }) => (
           <a

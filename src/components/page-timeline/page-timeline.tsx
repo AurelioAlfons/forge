@@ -11,6 +11,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useIntro } from "@/components/intro/use-intro";
 import {
   timelineItems,
   type TimelineItem,
@@ -51,6 +52,10 @@ export function PageTimeline() {
   const [activeId, setActiveId] = useState<TimelineItem["id"]>("home");
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  // dead to input until the reveal is done, same as the player
+  const { phase } = useIntro();
+  const introRunning = phase !== "ready";
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current === null) return;
@@ -326,7 +331,9 @@ export function PageTimeline() {
       onFocusCapture={handleFocus}
       onBlurCapture={handleBlur}
       onKeyDownCapture={handleRootKeyDown}
-      className="fixed top-1/2 left-[max(env(safe-area-inset-left),0.5rem)] z-40 -translate-y-1/2"
+      data-page-timeline
+      inert={introRunning}
+      className={`fixed top-1/2 left-[max(env(safe-area-inset-left),0.5rem)] z-40 -translate-y-1/2 ${introRunning ? "pointer-events-none" : ""}`}
     >
       <TimelineRuler
         sliderRef={sliderRef}

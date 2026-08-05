@@ -10,6 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { useIntro } from "@/components/intro/use-intro";
 import { tracks } from "@/lib/music/tracks";
 import { NowPlaying } from "./now-playing";
 import { PlaybackTimeline } from "./playback-timeline";
@@ -33,6 +34,10 @@ export function MusicPlayer() {
 
   const hasTracks = tracks.length > 0;
   const currentTrack = hasTracks ? tracks[currentIndex] : undefined;
+
+  // no clicking play through the intro, and nothing tabbable behind the loader
+  const { phase } = useIntro();
+  const introRunning = phase !== "ready";
 
   const playSafely = useCallback(async () => {
     const audio = audioRef.current;
@@ -122,7 +127,9 @@ export function MusicPlayer() {
   return (
     <div
       ref={rootRef}
-      className="fixed inset-x-2 top-[max(env(safe-area-inset-top),1.8rem)] z-50 mx-auto max-w-312 sm:inset-x-4"
+      data-music-player
+      inert={introRunning}
+      className={`fixed inset-x-2 top-[max(env(safe-area-inset-top),1.8rem)] z-50 mx-auto max-w-312 sm:inset-x-4 ${introRunning ? "pointer-events-none" : ""}`}
     >
       <div className="border-border/80 px-2x\ sm:px-xs rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
         <div className="relative z-10 grid min-h-14 grid-cols-[2.75rem_minmax(7rem,1fr)_minmax(4.5rem,0.8fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">

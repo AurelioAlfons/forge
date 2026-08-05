@@ -1,18 +1,18 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   MAX_DPR,
   PLAYBACK_FRAME_COUNT,
-  REDUCED_MOTION_QUERY,
+  REVEAL,
   SCROLL_LENGTH_VH,
   SCRUB,
   playbackFrameIndex,
 } from "@/lib/pc-sequence/config";
+import { useIntro, useIntroHoldProgress } from "@/components/intro/use-intro";
 import { useFrameSequence } from "./use-frame-sequence";
-import { useMediaQuery } from "./use-media-query";
 import { ProfileOverlay } from "./profile-overlay";
 import { BootLoader } from "./boot-loader";
 
@@ -26,33 +26,103 @@ export function PcSequenceSection() {
   // scroll progress lives in a ref so scrubbing doesn't re-render the section
   const progressRef = useRef(0);
   const drawnIndexRef = useRef(-1);
-  const [bootState, setBootState] = useState<"pending" | "reveal" | "ready">(
-    "pending",
-  );
-  const [showBootLoader, setShowBootLoader] = useState(true);
 
-  const reduced = useMediaQuery(REDUCED_MOTION_QUERY);
-  const { frames, ready, progress } = useFrameSequence();
+  const { phase, reducedMotion, markFirstFrameReady, markRevealComplete } =
+    useIntro();
+  const holdProgress = useIntroHoldProgress();
+  const { frames, ready } = useFrameSequence();
 
+  // frame 01 is drawable => the fan has done its job, let the reveal start
+  useEffect(() => {
+    if (ready) markFirstFrameReady();
+  }, [markFirstFrameReady, ready]);
+
+  // ===== INTRO REVEAL =====
+  // deliberately knows nothing about frame loading. if the cap fired because a
+  // download stalled, the reveal still has to play — that cap is the whole
+  // reason nobody gets stuck on a black screen.
   useLayoutEffect(() => {
-    if (sessionStorage.getItem("forge-boot-seen")) {
-      queueMicrotask(() => {
-        setShowBootLoader(false);
-        setBootState("ready");
-      });
-    }
-  }, []);
+    const canvas = canvasRef.current;
+    const stage = stageRef.current;
+    if (!canvas || !stage || phase !== "revealing" || reducedMotion) return;
 
-  const finishBoot = useCallback(() => {
-    setShowBootLoader(false);
-    setBootState(reduced ? "ready" : "reveal");
-  }, [reduced]);
+    const profileIntro = stage.querySelector<HTMLElement>(
+      "[data-profile-intro]",
+    );
+    const socialLinks = stage.querySelector<HTMLElement>("[data-social-links]");
+    // the player and the timeline are siblings of this section, not children
+    const musicPlayer = document.querySelector<HTMLElement>(
+      "[data-music-player]",
+    );
+    const pageTimeline = document.querySelector<HTMLElement>(
+      "[data-page-timeline]",
+    );
+
+    // everything shows up together, staggered, while frames keep streaming in
+    const timeline = gsap.timeline({
+      defaults: { ease: "power3.out" },
+      onComplete: markRevealComplete,
+    });
+
+    timeline.fromTo(
+      canvas,
+      { opacity: 0, scale: 0.965 },
+      { opacity: 1, scale: 1, duration: REVEAL.canvas.duration },
+      REVEAL.canvas.at,
+    );
+
+    if (musicPlayer) {
+      timeline.fromTo(
+        musicPlayer,
+        { yPercent: -130, autoAlpha: 0 },
+        { yPercent: 0, autoAlpha: 1, duration: REVEAL.musicPlayer.duration },
+        REVEAL.musicPlayer.at,
+      );
+    }
+    if (profileIntro) {
+      timeline.fromTo(
+        profileIntro,
+        { y: -48, autoAlpha: 0 },
+        { y: 0, autoAlpha: 1, duration: REVEAL.profileIntro.duration },
+        REVEAL.profileIntro.at,
+      );
+    }
+    if (socialLinks) {
+      timeline.fromTo(
+        socialLinks,
+        { x: 140, autoAlpha: 0 },
+        { x: 0, autoAlpha: 1, duration: REVEAL.socialLinks.duration },
+        REVEAL.socialLinks.at,
+      );
+    }
+    if (pageTimeline) {
+      timeline.fromTo(
+        pageTimeline,
+        { x: -24, autoAlpha: 0 },
+        { x: 0, autoAlpha: 1, duration: REVEAL.pageTimeline.duration },
+        REVEAL.pageTimeline.at,
+      );
+    }
+
+    return () => {
+      timeline.kill();
+      for (const el of [
+        canvas,
+        musicPlayer,
+        profileIntro,
+        socialLinks,
+        pageTimeline,
+      ]) {
+        if (el) gsap.set(el, { clearProps: "transform,opacity,visibility" });
+      }
+    };
+  }, [markRevealComplete, phase, reducedMotion]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     const section = sectionRef.current;
-    if (!canvas || !stage || !section || !ready || bootState === "pending") {
+    if (!canvas || !stage || !section || phase === "booting") {
       return;
     }
 
@@ -67,8 +137,8 @@ export function PcSequenceSection() {
     const triggers: ScrollTrigger[] = [];
     let introTween: gsap.core.Tween | null = null;
     let socialTween: gsap.core.Tween | null = null;
-    let revealTimeline: gsap.core.Timeline | null = null;
     let rafId = 0;
+    let refreshRafId = 0;
 
     // ===== SIZING =====
     function resize() {
@@ -147,7 +217,7 @@ export function PcSequenceSection() {
     window.addEventListener("resize", resize);
 
     function installScrollMotion() {
-      if (reduced) return;
+      if (reducedMotion) return;
 
       if (profileIntro) {
         // the intro follows the scroll in both directions, so coming home
@@ -194,10 +264,11 @@ export function PcSequenceSection() {
 
     // ===== SCROLL =====
     // reduced motion gets a single frame and no pin
-    if (reduced) {
+    if (reducedMotion) {
       progressRef.current = 0;
       draw(0);
-    } else {
+    } else if (phase === "ready") {
+      // only pinned once the lock is off, otherwise the page measures short
       triggers.push(
         ScrollTrigger.create({
           trigger: section!,
@@ -214,57 +285,38 @@ export function PcSequenceSection() {
       );
     }
 
-    if (bootState === "reveal" && !reduced) {
-      revealTimeline = gsap.timeline({
-        defaults: { ease: "power3.out" },
-        onComplete: () => {
-          setBootState("ready");
-          installScrollMotion();
-          ScrollTrigger.refresh();
-        },
+    if (phase === "ready") {
+      // the lock is already off by now, so give layout one frame to come back
+      // before scrolltrigger caches any positions
+      refreshRafId = requestAnimationFrame(() => {
+        installScrollMotion();
+        ScrollTrigger.refresh();
       });
-      if (profileIntro) {
-        revealTimeline.fromTo(
-          profileIntro,
-          { yPercent: -115, autoAlpha: 0 },
-          { yPercent: 0, autoAlpha: 1, duration: 0.9 },
-          0,
-        );
-      }
-      if (socialLinks) {
-        revealTimeline.fromTo(
-          socialLinks,
-          { x: window.innerWidth, autoAlpha: 0 },
-          { x: 0, autoAlpha: 1, duration: 0.9 },
-          0.12,
-        );
-      }
-    } else {
-      installScrollMotion();
     }
 
-    rafId = requestAnimationFrame(tick);
+    // draw now, not next frame — resize() blanks the bitmap and this effect
+    // re-runs when the phase flips, which was one black frame on the handoff
+    tick();
 
     return () => {
       cancelAnimationFrame(rafId);
+      cancelAnimationFrame(refreshRafId);
       window.removeEventListener("resize", resize);
       // only our own triggers — getAll() would kill anything else on the page
       for (const t of triggers) t.kill();
-      introTween?.kill();
-      socialTween?.kill();
-      revealTimeline?.kill();
-      if (profileIntro) {
-        gsap.set(profileIntro, {
-          clearProps: "transform,opacity,visibility",
-        });
+
+      // only clear what this effect actually touched, so a late frame landing
+      // mid-reveal can't wipe the other timeline's values
+      if (introTween && profileIntro) {
+        introTween.kill();
+        gsap.set(profileIntro, { clearProps: "transform,opacity,visibility" });
       }
-      if (socialLinks) {
-        gsap.set(socialLinks, {
-          clearProps: "transform,opacity,visibility",
-        });
+      if (socialTween && socialLinks) {
+        socialTween.kill();
+        gsap.set(socialLinks, { clearProps: "transform,opacity,visibility" });
       }
     };
-  }, [bootState, frames, ready, reduced]);
+  }, [frames, phase, reducedMotion]);
 
   return (
     <section
@@ -283,20 +335,14 @@ export function PcSequenceSection() {
           className="pointer-events-none absolute inset-0 h-full w-full"
         />
 
-        <ProfileOverlay hidden={bootState === "pending"} />
-
-        {!ready && (
-          <div className="text-muted text-step--1 bottom-l absolute inset-x-0 text-center font-mono">
-            {Math.round(progress * 100)}%
-          </div>
-        )}
+        <ProfileOverlay phase={phase} />
       </div>
 
-      {showBootLoader && (
+      {phase !== "ready" && (
         <BootLoader
-          loadProgress={progress}
-          reducedMotion={reduced}
-          onComplete={finishBoot}
+          holdProgress={holdProgress}
+          reducedMotion={reducedMotion}
+          exiting={phase !== "booting"}
         />
       )}
     </section>

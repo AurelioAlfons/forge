@@ -1,71 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-const MINIMUM_LOAD_MS = 5000;
-const EXIT_MS = 550;
+import { FAN_EXIT_MS } from "@/lib/pc-sequence/config";
 
 type BootLoaderProps = {
-  loadProgress: number;
+  /** 0 to 1 across the fan beat. the provider owns the clock, this just draws. */
+  holdProgress: number;
   reducedMotion: boolean;
-  onComplete: () => void;
+  exiting: boolean;
 };
 
 export function BootLoader({
-  loadProgress,
+  holdProgress,
   reducedMotion,
-  onComplete,
+  exiting,
 }: BootLoaderProps) {
-  const startedAt = useRef(0);
-  const completedRef = useRef(false);
-  const [timeProgress, setTimeProgress] = useState(0);
-  const [exiting, setExiting] = useState(false);
-
-  useEffect(() => {
-    startedAt.current = Date.now();
-    const previousRootOverflow = document.documentElement.style.overflow;
-    const previousBodyOverflowY = document.body.style.overflowY;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflowY = "hidden";
-    let rafId = 0;
-
-    // five seconds is the floor; the real downloads still get the final say
-    function tick() {
-      setTimeProgress(
-        Math.min(1, (Date.now() - startedAt.current) / MINIMUM_LOAD_MS),
-      );
-      rafId = requestAnimationFrame(tick);
-    }
-
-    rafId = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(rafId);
-      document.documentElement.style.overflow = previousRootOverflow;
-      document.body.style.overflowY = previousBodyOverflowY;
-    };
-  }, []);
-
-  const visibleProgress = Math.min(loadProgress, timeProgress);
-
-  useEffect(() => {
-    if (visibleProgress < 1 || completedRef.current) return;
-    completedRef.current = true;
-    sessionStorage.setItem("forge-boot-seen", "1");
-    setExiting(true);
-
-    const exitTimer = window.setTimeout(
-      onComplete,
-      reducedMotion ? 0 : EXIT_MS,
-    );
-    return () => window.clearTimeout(exitTimer);
-  }, [onComplete, reducedMotion, visibleProgress]);
-
-  const percentage = Math.round(visibleProgress * 100);
+  const percentage = Math.round(holdProgress * 100);
 
   return (
     <div
       data-boot-loader
-      className={`fixed inset-0 z-100 grid place-items-center bg-black transition-[opacity,transform] duration-500 ease-out ${
+      style={{ transitionDuration: `${FAN_EXIT_MS}ms` }}
+      className={`fixed inset-0 z-100 grid place-items-center bg-black transition-[opacity,transform] ease-out ${
         exiting ? "pointer-events-none -translate-y-full opacity-0" : ""
       } ${reducedMotion ? "transition-none" : ""}`}
     >
@@ -94,8 +49,7 @@ export function BootLoader({
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeDasharray="1"
-            strokeDashoffset={1 - visibleProgress}
-            className="transition-[stroke-dashoffset] duration-150 ease-out"
+            strokeDashoffset={1 - holdProgress}
           />
         </svg>
 
