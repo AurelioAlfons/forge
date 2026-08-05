@@ -1,3 +1,47 @@
+/* ===== SKILLS HONEYCOMB TILES =====
+
+  Decorative only. The readable list is the sr-only one in skills-overlay.tsx,
+  so these stay aria-hidden and out of the tab order. Mouse affordance, nothing
+  more. The parent ul is pointer-events:none so the fan and the gaps stay
+  scroll-through, and each tile opts itself back in.
+*/
+.skill-hex-tile {
+  cursor: pointer;
+  pointer-events: auto;
+  /* coloured glow plus a dark cast under it. the second shadow is what lifts
+     the tile off the fan instead of leaving it looking painted on */
+  filter: drop-shadow(
+      0 0 calc(var(--skill-hex-s, 0px) * 0.28)
+        color-mix(in srgb, var(--hex-color) 55%, transparent)
+    )
+    drop-shadow(
+      0 calc(var(--skill-hex-s, 0px) * 0.06) calc(var(--skill-hex-s, 0px) * 0.1)
+        rgba(0, 0, 0, 0.75)
+    );
+  transition:
+    transform 200ms ease,
+    filter 200ms ease;
+}
+
+.skill-hex-tile:hover {
+  transform: scale(1.1) translateY(calc(var(--skill-hex-s, 0px) * -0.04));
+  filter: drop-shadow(0 0 calc(var(--skill-hex-s, 0px) * 0.5) var(--hex-color))
+    drop-shadow(
+      0 calc(var(--skill-hex-s, 0px) * 0.12)
+        calc(var(--skill-hex-s, 0px) * 0.16) rgba(0, 0, 0, 0.8)
+    )
+    brightness(1.18) saturate(1.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-hex-tile {
+    transition: none;
+  }
+  .skill-hex-tile:hover {
+    transform: none;
+  }
+}
+
 @utility container-page {
   width: 100%;
   margin-inline: auto;

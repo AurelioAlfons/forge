@@ -1,6 +1,9 @@
 export type TimelineItem = {
   id: "home" | "projects" | "skills" | "resume" | "contact";
   label: string;
+  // placeholder fraction of total document scroll. "skills" gets resolved to a
+  // real position at runtime (see getSkillsAnchorScrollY) — this number is only
+  // ever seen if that resolve hasn't run yet.
   progress: number;
 };
 

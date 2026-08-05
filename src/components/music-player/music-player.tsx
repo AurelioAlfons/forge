@@ -15,6 +15,7 @@ import { tracks } from "@/lib/music/tracks";
 import { NowPlaying } from "./now-playing";
 import { PlaybackTimeline } from "./playback-timeline";
 import { PlaylistPanel } from "./playlist-panel";
+import { useHideOnScrollDown } from "./use-hide-on-scroll-down";
 
 const iconButton =
   "text-muted hover:bg-fg/5 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 grid size-11 shrink-0 place-items-center rounded-sm transition-colors";
@@ -38,6 +39,10 @@ export function MusicPlayer() {
   // no clicking play through the intro, and nothing tabbable behind the loader
   const { phase } = useIntro();
   const introRunning = phase !== "ready";
+
+  // gets out of the way going down, comes back coming up. only after the intro,
+  // since its reveal tween owns this element's transform until then.
+  const hiddenByScroll = useHideOnScrollDown(!introRunning && !panelOpen);
 
   const playSafely = useCallback(async () => {
     const audio = audioRef.current;
@@ -128,8 +133,8 @@ export function MusicPlayer() {
     <div
       ref={rootRef}
       data-music-player
-      inert={introRunning}
-      className={`fixed inset-x-2 top-[max(env(safe-area-inset-top),1.8rem)] z-50 mx-auto max-w-312 sm:inset-x-4 ${introRunning ? "pointer-events-none" : ""}`}
+      inert={introRunning || hiddenByScroll}
+      className={`fixed inset-x-2 top-[max(env(safe-area-inset-top),1.8rem)] z-50 mx-auto max-w-312 transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none sm:inset-x-4 ${introRunning || hiddenByScroll ? "pointer-events-none" : ""} ${hiddenByScroll ? "-translate-y-[calc(100%+3rem)] opacity-0" : "translate-y-0 opacity-100"}`}
     >
       <div className="border-border/80 px-2x\ sm:px-xs rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
         <div className="relative z-10 grid min-h-14 grid-cols-[2.75rem_minmax(7rem,1fr)_minmax(4.5rem,0.8fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">

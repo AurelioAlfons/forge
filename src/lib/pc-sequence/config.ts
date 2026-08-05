@@ -29,7 +29,7 @@ export function framePath(index: number) {
 /** The one frame the intro actually waits on. Preloaded in the document head. */
 export const GATE_FRAME_PATH = framePath(0);
 
-function zoomPlaybackFrameIndex(step: number) {
+export function zoomPlaybackFrameIndex(step: number) {
   if (step < SPIN_START_ZOOM_FRAME) return step;
 
   const spinStep = step - SPIN_START_ZOOM_FRAME;

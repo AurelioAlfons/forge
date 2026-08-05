@@ -98,6 +98,22 @@ export function AtmosphericHazeOverlay() {
     }
 
     function onPointerMove(event: PointerEvent) {
+      const projectsPanel = document.querySelector<HTMLElement>(
+        "[data-projects-interlude]",
+      );
+      const projectsRect = projectsPanel?.getBoundingClientRect();
+      const overProjects =
+        projectsRect &&
+        event.clientX >= projectsRect.left &&
+        event.clientX <= projectsRect.right &&
+        event.clientY >= projectsRect.top &&
+        event.clientY <= projectsRect.bottom;
+
+      if (overProjects) {
+        haze!.style.opacity = "0";
+        return;
+      }
+
       if (
         event
           .composedPath()

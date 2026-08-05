@@ -24,7 +24,9 @@ import { SkillsOverlay } from "@/components/skills/skills-overlay";
 import { ProjectsInterlude } from "@/components/projects/projects-interlude";
 import {
   PROJECTS_PROGRESS,
-  projectsPanelYPercent,
+  bloomSpreadPercent,
+  canvasDimFilter,
+  transitionEnvelope,
 } from "@/lib/projects/config";
 import { useFrameSequence } from "./use-frame-sequence";
 import { ProfileOverlay } from "./profile-overlay";
@@ -147,6 +149,9 @@ export function PcSequenceSection() {
     const projectsPanel = stage.querySelector<HTMLElement>(
       "[data-projects-interlude]",
     );
+    const projectsBloom = stage.querySelector<HTMLElement>(
+      "[data-projects-bloom]",
+    );
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -161,8 +166,8 @@ export function PcSequenceSection() {
     // one paused timeline scrubbed by the frame loop below. a second
     // scrolltrigger here would just fight the pin over the same gesture.
     // three acts on one 0..1 timeline: tiles materialize one by one, hold
-    // complete, then dematerialize in the same order — so by the time the fan
-    // starts pulling back out, nothing is left on screen.
+    // complete, then dematerialize in the same order. by the time the fan
+    // starts pulling back out there's nothing left on screen.
     const skillTiles: HTMLElement[] = [];
     const skillsTimeline = gsap.timeline({ paused: true });
     const lastIndex = SKILL_COUNT - 1;
@@ -248,10 +253,6 @@ export function PcSequenceSection() {
       stage!.style.setProperty("--skill-hex-s", `${comb.hex}px`);
       stage!.style.setProperty("--skill-fan-r", `${comb.fanRadius}px`);
       stage!.style.setProperty("--skill-gap", `${comb.gap}px`);
-      stage!.style.setProperty(
-        "--skill-label-display",
-        comb.showLabel ? "block" : "none",
-      );
 
       drawnIndexRef.current = -1; // force a redraw at the new size
     }
@@ -318,10 +319,24 @@ export function PcSequenceSection() {
           toProjectsProgress(progressRef.current),
         );
         if (projectsProgress !== lastProjectsProgress) {
-          if (projectsPanel) {
-            const y = projectsPanelYPercent(projectsProgress);
-            projectsPanel.style.transform = `translate3d(0, ${y}%, 0)`;
+          // one envelope drives all three, so the light, the panel and the dim
+          // can't drift out of step with each other
+          const envelope = transitionEnvelope(projectsProgress);
+
+          if (projectsBloom) {
+            projectsBloom.style.opacity = envelope.toFixed(3);
+            projectsBloom.style.setProperty(
+              "--projects-bloom-spread",
+              `${bloomSpreadPercent(envelope).toFixed(1)}%`,
+            );
           }
+
+          // lands fully opaque exactly as the bloom finishes, so there's no
+          // seam to see, they're the same white by then
+          if (projectsPanel) projectsPanel.style.opacity = envelope.toFixed(3);
+
+          // the pc settles as the light takes over, rather than being cut off
+          canvas!.style.filter = canvasDimFilter(envelope);
           lastProjectsProgress = projectsProgress;
         }
 
@@ -389,9 +404,8 @@ export function PcSequenceSection() {
     if (reducedMotion) {
       progressRef.current = 0;
       draw(0);
-      // no honeycomb here at all — frozen tiles over a static assembled pc
-      // would just be a sticker on the page, and the sr-only list already
-      // carries every skill name for exactly this case
+      // no honeycomb at all here. frozen tiles over a static pc would just be
+      // a sticker, and the sr-only list already covers this case
     } else if (phase === "ready") {
       // only pinned once the lock is off, otherwise the page measures short
       triggers.push(
@@ -434,9 +448,13 @@ export function PcSequenceSection() {
       // than clearProps, which would strip the inline opacity and flash them on
       skillsTimeline.kill();
       if (skillTiles.length) gsap.set(skillTiles, { opacity: 0, scale: 0.6 });
-      if (projectsPanel) {
-        projectsPanel.style.transform = "translate3d(0, 100%, 0)";
+      if (projectsPanel) projectsPanel.style.opacity = "0";
+      if (projectsBloom) {
+        projectsBloom.style.opacity = "0";
+        projectsBloom.style.removeProperty("--projects-bloom-spread");
       }
+      // otherwise a remount could come back already dimmed
+      canvas.style.filter = "";
 
       // only clear what this effect actually touched, so a late frame landing
       // mid-reveal can't wipe the other timeline's values

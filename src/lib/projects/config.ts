@@ -18,14 +18,57 @@ export const PROJECTS_PROGRESS = {
 export const PROJECTS_REVEAL_FRACTION = 0.25;
 export const PROJECTS_EXIT_FRACTION = 0.75;
 
-export function projectsPanelYPercent(progress: number) {
+/**
+ * Ramps up across the entry, sits at 1 through the hold, ramps back down across
+ * the exit. The bloom, the panel fade and the pc dim all ride this one shape, so
+ * they cannot drift apart.
+ */
+export function transitionEnvelope(progress: number) {
   if (progress <= PROJECTS_REVEAL_FRACTION) {
-    return 100 - (progress / PROJECTS_REVEAL_FRACTION) * 100;
+    return progress / PROJECTS_REVEAL_FRACTION;
   }
-  if (progress < PROJECTS_EXIT_FRACTION) return 0;
-  return (
-    -((progress - PROJECTS_EXIT_FRACTION) / (1 - PROJECTS_EXIT_FRACTION)) * 100
-  );
+  if (progress < PROJECTS_EXIT_FRACTION) return 1;
+  return 1 - (progress - PROJECTS_EXIT_FRACTION) / (1 - PROJECTS_EXIT_FRACTION);
+}
+
+// ===== THE BLOOM =====
+
+/** Tight around the fan hub at the start. */
+const BLOOM_SPREAD_MIN = 8;
+
+// past the viewport diagonal, so the glow is actually everywhere by the time
+// the panel takes over.
+const BLOOM_SPREAD_MAX = 140;
+
+/**
+ * Where the gradient's white stop sits, as a percentage. Growing this is what
+ * makes it a bloom. Opacity on its own just reads as the screen fading.
+ */
+export function bloomSpreadPercent(envelope: number) {
+  return BLOOM_SPREAD_MIN + (BLOOM_SPREAD_MAX - BLOOM_SPREAD_MIN) * envelope;
+}
+
+// ===== THE PC PRE-DIM =====
+
+// peak dim on the pc canvas. ~55% brightness and a light blur, so the scene
+// settles as the light takes over instead of getting cut off.
+const DIM_BRIGHTNESS_DROP = 0.45;
+const DIM_BLUR_PX = 3;
+
+// warms the dim so the fan's glow is the last thing you see. neutral grey
+// works too, it just looks like everyone else's.
+const DIM_WARMTH = 0.15;
+
+/** Returns an empty string when there is nothing to dim, so the canvas carries
+ *  no filter at all outside this window. */
+export function canvasDimFilter(dim: number) {
+  if (dim <= 0) return "";
+
+  const brightness = 1 - dim * DIM_BRIGHTNESS_DROP;
+  const blur = dim * DIM_BLUR_PX;
+  const sepia = dim * DIM_WARMTH;
+
+  return `brightness(${brightness.toFixed(3)}) blur(${blur.toFixed(2)}px) sepia(${sepia.toFixed(3)}) saturate(${(1 + dim * 0.1).toFixed(3)})`;
 }
 
 export function getProjectsAnchorScrollY(pcSection: HTMLElement) {

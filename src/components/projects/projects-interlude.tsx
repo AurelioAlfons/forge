@@ -4,6 +4,21 @@ import { useEffect, useRef } from "react";
 import { initFluid } from "@/lib/fluid/fluid";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+// no sliding edge anymore. a glow grows out of the fan until the frame blows
+// out, then the panel fades up underneath it. both are the same white by then,
+// so there's no seam to hide.
+//
+// fan sits at the stage centre, same assumption the skills honeycomb makes.
+// the colour stop travels too, opacity alone just looks like a fade.
+const PROJECTS_STAGE_COLOR = "#dad5cf";
+const BLOOM_GRADIENT =
+  "radial-gradient(circle at 50% 50%," +
+  " var(--accent, #ff7a3d) 0%," +
+  ` color-mix(in srgb, var(--accent, #ff7a3d) 45%, ${PROJECTS_STAGE_COLOR})` +
+  " calc(var(--projects-bloom-spread, 8%) * 0.45)," +
+  ` ${PROJECTS_STAGE_COLOR} var(--projects-bloom-spread, 8%),` +
+  ` ${PROJECTS_STAGE_COLOR} 100%)`;
 const PROJECTS_FLUID_PALETTE = [
   { h: 0.65, s: 1, v: 0.9 }, // cobalt blue
   { h: 0.65, s: 1, v: 0.9 },
@@ -81,21 +96,36 @@ export function ProjectsInterlude() {
   }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      aria-label="Projects"
-      data-projects-interlude
-      className="pointer-events-none absolute inset-0 z-20 bg-white"
-      style={{ transform: "translateY(100%)" }}
-    >
-      <canvas
-        ref={canvasRef}
-        data-projects-fluid
+    <>
+      {/* screen blend so this reads as light on the pc rather than a shape
+          laid over it. sits above the stage, below the panel. */}
+      <div
+        data-projects-bloom
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
+        className="pointer-events-none absolute inset-0 z-15"
+        style={{
+          opacity: 0,
+          background: BLOOM_GRADIENT,
+          mixBlendMode: "screen",
+        }}
       />
-      <h2 className="sr-only">Projects</h2>
-    </section>
+
+      <section
+        ref={sectionRef}
+        aria-label="Projects"
+        data-projects-interlude
+        className="pointer-events-none absolute inset-0 z-20"
+        style={{ opacity: 0, backgroundColor: PROJECTS_STAGE_COLOR }}
+      >
+        <canvas
+          ref={canvasRef}
+          data-projects-fluid
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
+        />
+        <h2 className="sr-only">Projects</h2>
+      </section>
+    </>
   );
 }
