@@ -31,6 +31,18 @@ export function transitionEnvelope(progress: number) {
   return 1 - (progress - PROJECTS_EXIT_FRACTION) / (1 - PROJECTS_EXIT_FRACTION);
 }
 
+/**
+ * Maps the whole window onto just the hold phase, where the panel is fully
+ * covering and the carousel has the screen to itself. Outside the hold it
+ * clamps, so the first project is already resting in the centre as the bloom
+ * finishes and the last one is still resting when the panel starts leaving.
+ */
+export function carouselProgress(progress: number) {
+  const span = PROJECTS_EXIT_FRACTION - PROJECTS_REVEAL_FRACTION;
+  const held = (progress - PROJECTS_REVEAL_FRACTION) / span;
+  return Math.min(1, Math.max(0, held));
+}
+
 // ===== THE BLOOM =====
 
 /** Tight around the fan hub at the start. */

@@ -26,8 +26,11 @@ import {
   PROJECTS_PROGRESS,
   bloomSpreadPercent,
   canvasDimFilter,
+  carouselProgress,
   transitionEnvelope,
 } from "@/lib/projects/config";
+import type { CarouselHandle } from "@/components/projects/projects-carousel";
+import { DecorReadout } from "@/components/decor/decor-readout";
 import { useFrameSequence } from "./use-frame-sequence";
 import { ProfileOverlay } from "./profile-overlay";
 import { BootLoader } from "./boot-loader";
@@ -38,9 +41,11 @@ export function PcSequenceSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const readoutValueRef = useRef<HTMLSpanElement>(null);
 
   // scroll progress lives in a ref so scrubbing doesn't re-render the section
   const progressRef = useRef(0);
+  const carouselRef = useRef<CarouselHandle | null>(null);
   const drawnIndexRef = useRef(-1);
 
   const { phase, reducedMotion, markFirstFrameReady, markRevealComplete } =
@@ -312,6 +317,12 @@ export function PcSequenceSection() {
 
       if (index !== drawnIndexRef.current) draw(index);
 
+      // real playback position, not an invented number — same idea as the
+      // loader's actual load percentage
+      if (readoutValueRef.current) {
+        readoutValueRef.current.textContent = `${String(step).padStart(4, "0")} / ${lastStep}`;
+      }
+
       // the hexes ride the fan spin off the same progress value, just a
       // different slice of it
       if (!reducedMotion) {
@@ -334,6 +345,15 @@ export function PcSequenceSection() {
           // lands fully opaque exactly as the bloom finishes, so there's no
           // seam to see, they're the same white by then
           if (projectsPanel) projectsPanel.style.opacity = envelope.toFixed(3);
+
+          // anime.js gets seeked from this loop like everything else, rather
+          // than running its own listener next to gsap's. same envelope that
+          // drives the panel's own opacity gates whether the cards can be
+          // clicked at all — opacity alone doesn't stop a click.
+          carouselRef.current?.setProgress(
+            carouselProgress(projectsProgress),
+            envelope > 0.02,
+          );
 
           // the pc settles as the light takes over, rather than being cut off
           canvas!.style.filter = canvasDimFilter(envelope);
@@ -489,9 +509,17 @@ export function PcSequenceSection() {
 
         <SkillsOverlay />
 
-        <ProjectsInterlude />
+        <ProjectsInterlude carouselRef={carouselRef} />
 
         <ProfileOverlay phase={phase} />
+
+        <DecorReadout
+          label="Frame"
+          value={`0000 / ${PLAYBACK_FRAME_COUNT - 1}`}
+          valueRef={readoutValueRef}
+          tone="on-dark"
+          corner="top-right"
+        />
       </div>
 
       {phase !== "ready" && (

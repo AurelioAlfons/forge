@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { initFluid } from "@/lib/fluid/fluid";
+import { carouselScale } from "@/lib/projects/carousel-config";
+import { useMediaQuery } from "@/components/pc-sequence/use-media-query";
+import { ProjectsCarousel, type CarouselHandle } from "./projects-carousel";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -27,9 +30,33 @@ const PROJECTS_FLUID_PALETTE = [
   { h: 0.78, s: 0.95, v: 0.88 }, // violet
 ] as const;
 
-export function ProjectsInterlude() {
+type ProjectsInterludeProps = {
+  carouselRef: RefObject<CarouselHandle | null>;
+};
+
+export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+
+  // the carousel's own cards are sized in real px regardless of viewport, so
+  // this scale factor is what actually shrinks them to fit a phone
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    function applyScale() {
+      section!.style.setProperty(
+        "--carousel-scale",
+        String(carouselScale(section!.clientWidth)),
+      );
+    }
+
+    applyScale();
+    const observer = new ResizeObserver(applyScale);
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -125,6 +152,15 @@ export function ProjectsInterlude() {
           style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
         />
         <h2 className="sr-only">Projects</h2>
+
+        {/* the panel is click-through so the pc keeps its pointer, and the
+            cards opt themselves back in */}
+        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+          <ProjectsCarousel
+            handleRef={carouselRef}
+            reducedMotion={reducedMotion}
+          />
+        </div>
       </section>
     </>
   );

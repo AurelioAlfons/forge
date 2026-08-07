@@ -1,6 +1,8 @@
 // tuning for the pc scroll sequence. numbers live here so the component stays
 // about behaviour and not magic values.
 
+import { PROJECT_COUNT } from "@/lib/projects/projects-data";
+
 export const ASSEMBLY_FRAME_COUNT = 80;
 export const ZOOM_FRAME_COUNT = 80;
 export const SPIN_START_ZOOM_FRAME = 40;
@@ -8,8 +10,12 @@ export const SPIN_EXTRA_PLAYBACK_FRAMES = 240;
 export const ZOOM_PLAYBACK_FRAME_COUNT =
   ZOOM_FRAME_COUNT + SPIN_EXTRA_PLAYBACK_FRAMES;
 export const FRAME_COUNT = ASSEMBLY_FRAME_COUNT + ZOOM_FRAME_COUNT;
-/** Scroll beats reserved for the Projects page between explosion and rebuild. */
-export const PROJECTS_PLAYBACK_FRAMES = 120;
+/** Scroll beats reserved for the Projects page between explosion and rebuild.
+ *  Half the window is the hold phase where the carousel actually turns, so
+ *  this scales with the project count. At 100 per turn each project gets
+ *  roughly half a viewport of scroll, which at the old flat 120 was 147px and
+ *  far too quick to read. */
+export const PROJECTS_PLAYBACK_FRAMES = 100 * Math.max(1, PROJECT_COUNT - 1);
 export const REASSEMBLY_START_STEP =
   ASSEMBLY_FRAME_COUNT + PROJECTS_PLAYBACK_FRAMES;
 export const ZOOM_LEG_START_STEP =

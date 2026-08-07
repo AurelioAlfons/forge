@@ -1,6 +1,8 @@
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import type { IntroPhase } from "@/components/intro/intro-context";
 import { site } from "@/lib/site";
+import { DecorArrow } from "@/components/decor/decor-arrow";
+import { DecorMark } from "@/components/decor/decor-mark";
 
 const socialLinks = [
   {
@@ -32,6 +34,11 @@ export function ProfileOverlay({ phase }: ProfileOverlayProps) {
         aria-labelledby="intro-heading"
         className={`absolute top-[clamp(6rem,13svh,8rem)] left-4 w-[min(26rem,calc(100vw-2rem))] sm:left-[clamp(4.75rem,6vw,6rem)] ${hidden ? "invisible opacity-0" : ""}`}
       >
+        <div className="mb-2xs flex items-center gap-2">
+          <DecorMark variant="triad" tone="on-dark" size={16} />
+          <DecorArrow tone="on-dark" />
+        </div>
+
         <h1
           id="intro-heading"
           className="text-fg max-w-[9ch] text-[clamp(2.75rem,4.7vw,4.75rem)] leading-[0.88] font-semibold tracking-[-0.055em]"
