@@ -15,14 +15,6 @@ My personal portfolio.
 =======
 <<<<<<< HEAD
 
-# forge
-
-<img width="1856" height="960" alt="image" src="https://github.com/user-attachments/assets/843d0c79-0176-468f-a387-be2dc23e33c4" />
-Personal portfolio site.
->>>>>>> f5fa9f750bf5fc4007a380fe939a180214156acb
-=======
->>>>>>> 8b119a48d728ac261e6514cb6cb5c372ffba93d3
-
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack)
