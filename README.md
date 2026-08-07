@@ -13,7 +13,6 @@
 
 My personal portfolio.
 =======
-<<<<<<< HEAD
 
 ## Stack
 
