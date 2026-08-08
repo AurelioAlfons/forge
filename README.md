@@ -1,125 +1,77 @@
-<<<<<<< HEAD
-
 # Forge
-
-![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=000000)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
-![GSAP](https://img.shields.io/badge/GSAP-3.15-88CE02?logo=greensock&logoColor=000000)
-![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)
-
 <img width="1856" height="960" alt="Forge homepage" src="https://github.com/user-attachments/assets/843d0c79-0176-468f-a387-be2dc23e33c4" />
 
-My personal portfolio.
-=======
+**A highly interactive developer portfolio built with fluid responsive design, scroll-driven animations, WebGL effects, and custom UI systems.**
 
-## Stack
+---
 
-- **Next.js 16** (App Router, Turbopack)
-- **React 19** + **TypeScript** (strict)
-- **Tailwind CSS v4**, configured in CSS rather than a JS file
-- **GSAP 3.15** with ScrollTrigger for every scroll-driven effect
-- **pnpm**
+## 🛠 Tech Stack
 
-## Commands
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge\&logo=next.js\&logoColor=white)
+![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge\&logo=react\&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge\&logo=typescript\&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=for-the-badge\&logo=tailwind-css\&logoColor=white)
+![GSAP](https://img.shields.io/badge/GSAP-88CE02?style=for-the-badge\&logo=greensock\&logoColor=black)
+![pnpm](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge\&logo=pnpm\&logoColor=white)
 
-```bash
-pnpm dev           # dev server on http://localhost:3000
-pnpm build         # production build
-pnpm start         # serve the production build
-pnpm lint          # eslint
-pnpm typecheck     # tsc --noEmit
-pnpm format        # prettier --write .
-```
+**Also:** ScrollTrigger · WebGL · Turbopack · Fluid Design System
 
-## Fluid design system
+---
 
-There are almost no responsive breakpoints in this codebase. Type and spacing
-interpolate linearly between a **320px** and a **1440px** viewport using
-`clamp()`, so layouts scale continuously instead of snapping at breakpoints.
+## 📖 About
 
-Tokens are defined in [`src/styles/tokens.css`](src/styles/tokens.css) under
-`@theme`, which makes them available as ordinary Tailwind utilities:
+Forge is my personal developer portfolio built around interactive storytelling and motion.
 
-| Token            | Utility        | 320px → 1440px |
-| ---------------- | -------------- | -------------- |
-| `--text-step--1` | `text-step--1` | 12 → 14px      |
-| `--text-step-0`  | `text-step-0`  | 16 → 18px      |
-| `--text-step-1`  | `text-step-1`  | 20 → 24px      |
-| `--text-step-2`  | `text-step-2`  | 25 → 32px      |
-| `--text-step-3`  | `text-step-3`  | 31 → 43px      |
-| `--text-step-4`  | `text-step-4`  | 39 → 58px      |
-| `--text-step-5`  | `text-step-5`  | 48 → 77px      |
-| `--spacing-3xs`  | `p-3xs`        | 4 → 5px        |
-| `--spacing-2xs`  | `p-2xs`        | 8 → 9px        |
-| `--spacing-xs`   | `p-xs`         | 12 → 14px      |
-| `--spacing-s`    | `p-s`          | 16 → 18px      |
-| `--spacing-m`    | `p-m`          | 24 → 27px      |
-| `--spacing-l`    | `p-l`          | 32 → 36px      |
-| `--spacing-xl`   | `p-xl`         | 48 → 54px      |
-| `--spacing-2xl`  | `p-2xl`        | 64 → 72px      |
-| `--spacing-3xl`  | `p-3xl`        | 96 → 108px     |
+Instead of using a traditional static portfolio layout, the site combines scroll-driven animations, WebGL visuals, a PC frame sequence, interactive skill sections, music controls, and custom navigation.
 
-Space tokens work with any spacing utility: `p-m`, `mt-l`, `gap-xs`, `py-2xl`.
+The project also uses a custom fluid design system where typography and spacing scale continuously between different screen sizes instead of relying heavily on responsive breakpoints.
 
-Reach for a breakpoint (`sm:`, `md:`, …) only when the layout itself must
-change, such as a column count or a stacked nav becoming horizontal. Never for
-sizing.
+---
 
-### Other conventions
+## ✨ Core Features
 
-- `container-page` centers a wrapper at max 78rem with safe-area-aware padding.
-- `max-w-measure` caps body text at 68ch for readability.
-- Colors are semantic: `bg-bg`, `text-fg`, `text-muted`, `border-border`,
-  `text-accent`. Dark mode follows the OS, and `data-theme="dark"` on `<html>`
-  overrides it in both directions.
+* **Scroll-Driven Animations** — GSAP and ScrollTrigger power the major interactive sections and transitions.
+* **PC Sequence Experience** — A pinned canvas animation uses image sequences and scroll progress to create an interactive hardware showcase.
+* **WebGL Visual Effects** — Custom fluid simulation provides atmospheric backgrounds, haze, and interactive visual effects.
+* **Fluid Responsive Design** — Typography and spacing scale smoothly using CSS `clamp()` between 320px and 1440px.
+* **Interactive Skills Section** — Skills are presented through animated hexagonal elements connected to the site's visual theme.
+* **Custom Page Navigation** — Includes a draggable page timeline and navigation system for moving through portfolio sections.
+* **Music Player** — A fixed music interface provides playlist, playback, and seek controls.
 
-## Structure
+---
 
-```
-src/
-  app/
-    layout.tsx              root layout, metadata, skip link
-    page.tsx                composition only, the sections do the work
-  components/
-    intro/                  boot phase machine and scroll lock
-    layout/                 site-wide chrome (header, footer)
-    music-player/           fixed top bar, playlist, seek row
-    page-timeline/          draggable left ruler and nav panel
-    pc-sequence/            the pinned canvas sequence and its overlays
-    projects/               white interlude panel and its bloom
-    sections/               one file per home-page section
-    skills/                 hexagon tiles that ride the fan spin
-  lib/
-    music/                  track list
-    navigation/             timeline stops
-    pc-sequence/            frame paths and playback mapping
-    projects/               interlude window, bloom and dim helpers
-    skills/                 honeycomb geometry and skill data
-    site.ts                 site config and helpers
-  styles/
-    globals.css             entry point, imports the four partials below
-    tokens.css              @theme: type scale, space scale, measure, fonts
-    theme.css               semantic colors, dark mode, data-theme overrides
-    base.css                @layer base element defaults
-    utilities.css           @utility container-page, skill tile hover
-```
+## ⚙️ How It Works
 
-`src/lib/fluid/` holds the vendored WebGL fluid solver, used by the Projects
-interlude and the atmospheric haze overlay. `src/lib/scroll-sequence/` and
-`src/lib/water-ripple/` are parked: nothing imports them, and they are kept for
-reference rather than deleted.
+The application is built with **Next.js 16**, **React 19**, and strict **TypeScript** using the App Router.
 
-Styles are split so the visual work ahead has somewhere to land instead of
-piling into one file. The import order in `globals.css` matters: tokens define
-the raw values, theme maps them to semantic colors, and base and utilities
-consume both.
+**Tailwind CSS v4** handles styling through CSS-based theme tokens, including custom typography, spacing, and semantic colour variables.
 
-### Conventions
+Most scroll interactions are controlled through **GSAP ScrollTrigger**, which coordinates section transitions, pinned elements, animation progress, and the PC image sequence.
 
-- **kebab-case filenames.** No PascalCase files.
-- **No barrel `index.ts` files.** Import the real path, such as
-  `@/components/layout/site-header`.
+The WebGL fluid system provides visual effects for sections such as the Projects interlude and atmospheric overlays.
 
-Site-wide copy (name, nav, links) lives in [`src/lib/site.ts`](src/lib/site.ts).
+The codebase is organised into dedicated components and libraries for navigation, animations, music, projects, skills, and visual effects to keep each system independent and maintainable.
+
+---
+
+## 📌 Project Status
+
+* ✅ Core portfolio layout and design system
+* ✅ Fluid typography and spacing system
+* ✅ GSAP scroll animation system
+* ✅ PC canvas sequence
+* ✅ WebGL fluid effects
+* ✅ Interactive skills section
+* ✅ Custom page timeline navigation
+* ✅ Music player
+* 🚧 Continuing animation and performance improvements
+
+---
+
+## 🔮 What's Next
+
+* Improve mobile performance for heavier visual effects
+* Continue refining the PC scroll sequence
+* Expand project presentation sections
+* Improve animation timing and transitions
+* Add more interactive visual experiments
