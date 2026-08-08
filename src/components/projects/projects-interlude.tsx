@@ -7,6 +7,7 @@ import {
   carouselScale,
 } from "@/lib/projects/carousel-config";
 import { useMediaQuery } from "@/components/pc-sequence/use-media-query";
+import { HeroShutterText } from "@/components/ui/hero-shutter-text";
 import { ProjectsCarousel, type CarouselHandle } from "./projects-carousel";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -153,7 +154,14 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
           className="pointer-events-none absolute inset-0 h-full w-full"
           style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
         />
-        <h2 className="sr-only">Projects</h2>
+        <div className="pointer-events-none absolute inset-x-0 top-[12%] flex justify-center">
+          <h2
+            aria-label="My Projects"
+            className="text-step-5 -translate-x-[8vw] font-semibold tracking-tight text-black"
+          >
+            <HeroShutterText text="MY PROJECTS" tone="on-light" />
+          </h2>
+        </div>
 
         {/* the panel is click-through so the pc keeps its pointer, and the
             cards opt themselves back in */}
