@@ -2,23 +2,28 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 import Image from "next/image";
-import { createTimeline, type Timeline } from "animejs";
+import { motion, useMotionValue, useTransform } from "motion/react";
 import {
-  MAX_CARD_WIDTH_PX,
-  PERSPECTIVE_PX,
+  CardHoverReveal,
+  CardHoverRevealContent,
+  CardHoverRevealMain,
+} from "@/components/ui/reveal-on-hover";
+import { Badge } from "@/components/ui/badge";
+import {
+  CARD_GAP_PX,
+  CARD_HEIGHT_PX,
+  CARD_WIDTH_PX,
+  ENTRANCE_FRACTION,
+  PROJECTS_STAGE_COLOR,
   STAGE_HEIGHT_PX,
-  SWEEP_DURATION_MS,
-  TOTAL_TURNS,
-  cardAngle,
-  cardTransform,
+  TRACK_TRAVEL_PX,
 } from "@/lib/projects/carousel-config";
 import { projects } from "@/lib/projects/projects-data";
 
 export type CarouselHandle = {
-  /** `interactive` gates the cards' own pointer-events. The panel's opacity
+  /** `interactive` gates the strip's own pointer-events. The panel's opacity
    *  alone doesn't stop clicks — an invisible card would otherwise stay
-   *  clickable wherever the ring last parked it, including dead centre of
-   *  the pc stage long after scrolling away. */
+   *  clickable wherever the strip last parked it. */
   setProgress: (progress: number, interactive: boolean) => void;
 };
 
@@ -31,81 +36,51 @@ export function ProjectsCarousel({
   handleRef,
   reducedMotion,
 }: ProjectsCarouselProps) {
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<Timeline | null>(null);
+  // one 0..1 value drives the whole strip, fed by the pc sequence's own tick
+  // loop below — same contract the turntable ring used to expose.
+  // the row sits centred on itself at x=0 (place-items-center centres the
+  // untransformed track), so the range is shifted by half the travel each
+  // way rather than 0..-travel — that's what lands card 1 dead centre at the
+  // start and the last card dead centre at the end, instead of the whole row.
+  const progress = useMotionValue(0);
+  const x = useTransform(
+    progress,
+    [0, 1],
+    [TRACK_TRAVEL_PX / 2, -TRACK_TRAVEL_PX],
+  );
+  // card 1 grows in from the same spot the bloom just filled, then the strip
+  // starts travelling — reads as "the pokemon arrives" rather than just
+  // being there when the panel finishes fading in
+  const entranceScale = useTransform(progress, [0, ENTRANCE_FRACTION], [0.6, 1]);
+  const entranceOpacity = useTransform(
+    progress,
+    [0, ENTRANCE_FRACTION],
+    [0, 1],
+  );
+  const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene || reducedMotion) return;
-
-    const cards = projects.map((project) =>
-      scene.querySelector<HTMLElement>(`[data-project-card="${project.slug}"]`),
-    );
-
-    // one tweened number for the whole ring. animating x and z directly would
-    // lerp a straight chord across the circle instead of following the arc,
-    // so the angle is the thing that moves and positions come off it.
-    const ring = { turns: 0 };
-
-    // false until setProgress says otherwise — opacity alone never makes a
-    // card unclickable, so this is the actual gate
-    let interactive = false;
-
-    function render() {
-      cards.forEach((card, i) => {
-        if (!card) return;
-
-        const t = cardTransform(cardAngle(i, ring.turns));
-
-        // the trailing -50% runs first, so the card keeps sitting on its own
-        // ring point while its width and height are still changing
-        card.style.width = `${t.width.toFixed(1)}px`;
-        card.style.height = `${t.height.toFixed(1)}px`;
-        card.style.borderRadius = `${t.radius.toFixed(1)}px`;
-        card.style.transform = `translate3d(${t.x.toFixed(2)}px, ${t.y.toFixed(2)}px, ${t.z.toFixed(2)}px) rotateY(${t.rotateY.toFixed(2)}deg) translate(-50%, -50%)`;
-        card.style.opacity = t.opacity.toFixed(3);
-        card.style.pointerEvents = interactive ? "auto" : "none";
-        // the write-up belongs to whichever card is actually facing you
-        const info = card.querySelector<HTMLElement>("[data-project-info]");
-        if (info) {
-          info.style.opacity = Math.max(0, t.depth * 4 - 3).toFixed(3);
-        }
-      });
-    }
-
-    const timeline = createTimeline({ autoplay: false }).add(
-      ring,
-      {
-        turns: [0, TOTAL_TURNS],
-        duration: SWEEP_DURATION_MS,
-        ease: "linear",
-        onUpdate: render,
-      },
-      0,
-    );
-
-    timelineRef.current = timeline;
+    if (reducedMotion) return;
 
     handleRef.current = {
-      setProgress(progress, nextInteractive) {
-        interactive = nextInteractive;
-        const clamped = Math.min(1, Math.max(0, progress));
-        timeline.seek(clamped * SWEEP_DURATION_MS);
+      setProgress(next, interactive) {
+        progress.set(Math.min(1, Math.max(0, next)));
+        // opacity alone never makes a card unclickable, so this is the
+        // actual gate — same all-or-nothing switch the ring used to do per
+        // card, just applied once to the whole strip
+        if (trackRef.current) {
+          trackRef.current.style.pointerEvents = interactive ? "auto" : "none";
+        }
       },
     };
-
-    // land on the opening state rather than a pile of unplaced cards
-    render();
 
     const handle = handleRef;
     return () => {
-      timeline.pause();
-      timelineRef.current = null;
       handle.current = null;
     };
-  }, [handleRef, reducedMotion]);
+  }, [handleRef, progress, reducedMotion]);
 
-  // no scroll-driven ring to browse with, so this becomes an ordinary list
+  // no scroll-driven strip to browse with, so this becomes an ordinary list
   if (reducedMotion) {
     return (
       <ul className="gap-s px-m mx-auto grid w-full max-w-2xl">
@@ -132,79 +107,98 @@ export function ProjectsCarousel({
   }
 
   return (
-    // no max-width, no overflow clip here. mid-turn the ring genuinely needs
-    // more room than the 84rem box this used to be gave it, and the real
-    // outer wall is already the full-viewport stage in pc-sequence-section.
     <div className="relative w-full" style={{ height: `${STAGE_HEIGHT_PX}px` }}>
-      <div
-        ref={sceneRef}
-        className="absolute inset-0 grid place-items-center"
-        style={{
-          perspective: `${PERSPECTIVE_PX}px`,
-          // lets the browser sort the cards by real depth, so the far side of
-          // the ring draws behind the front one without any z-index juggling
-          transformStyle: "preserve-3d",
-        }}
-      >
-        <div
-          className="relative"
-          style={{
-            transformStyle: "preserve-3d",
-            transform: "scale(var(--carousel-scale, 1))",
-          }}
-        >
-          {projects.map((project) => (
-            <a
-              key={project.slug}
-              data-project-card={project.slug}
-              href={project.link}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`${project.title}. ${project.blurb}`}
-              // no static pointer-events-auto here — render() is the only
-              // thing allowed to turn this on, and only while the panel is
-              // actually visible, per the CarouselHandle comment above
-              className="absolute overflow-hidden bg-[#0b0b13] shadow-2xl"
-              style={{ opacity: 0, pointerEvents: "none", left: 0, top: 0 }}
-            >
-              <Image
-                src={project.thumbnail}
-                alt=""
-                fill
-                // the box is set in real px by render(), not vw, and never
-                // shrinks below what shapeAtAngle says regardless of
-                // viewport (carouselScale is a visual css transform on an
-                // ancestor, not a layout change) — so the hint has to match
-                // the true widest card, not a viewport guess
-                sizes={`${MAX_CARD_WIDTH_PX}px`}
-                // default quality (75) re-encodes to a lossy webp that goes
-                // soft on small ui text — these screenshots need more of it
-                quality={90}
-                // whole screenshot stays visible in every slot, letterboxed
-                // on the card's own dark face rather than cropped at the
-                // edges by the near-square left slot
-                className="object-contain"
-              />
-
-              <span
-                data-project-info
-                className="p-s gap-3xs absolute inset-x-0 bottom-0 grid bg-linear-to-t from-black/90 via-black/70 to-transparent"
-                style={{ opacity: 0 }}
+      <div className="absolute inset-0 grid place-items-center overflow-hidden">
+        {/* scale lives on a plain wrapper — framer writes its own transform
+            for x on the track below, and the two don't mix in one style */}
+        <div style={{ transform: "scale(var(--carousel-scale, 1))" }}>
+          <motion.div
+            ref={trackRef}
+            className="flex items-center"
+            style={{
+              x,
+              scale: entranceScale,
+              opacity: entranceOpacity,
+              gap: `${CARD_GAP_PX}px`,
+              pointerEvents: "none",
+            }}
+          >
+            {projects.map((project) => (
+              <a
+                key={project.slug}
+                href={project.link}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${project.title}. ${project.blurb}`}
+                className="relative block shrink-0"
+                style={{ width: CARD_WIDTH_PX, height: CARD_HEIGHT_PX }}
               >
-                <span className="text-step-1 leading-tight font-semibold text-white">
-                  {project.title}
-                </span>
-                <span className="text-xs leading-snug text-white/75">
-                  {project.blurb}
-                </span>
-                <span className="text-[0.65rem] tracking-wide text-white/50 uppercase">
-                  {project.stack.join(" · ")}
-                </span>
-              </span>
-            </a>
-          ))}
+                <CardHoverReveal className="size-full rounded-xl bg-[#0b0b13] shadow-2xl">
+                  {/* fill needs a positioned direct parent — the shared
+                      component itself is static */}
+                  <CardHoverRevealMain className="relative">
+                    <Image
+                      src={project.thumbnail}
+                      alt=""
+                      fill
+                      sizes={`${CARD_WIDTH_PX}px`}
+                      // default quality (75) re-encodes to a lossy webp that
+                      // goes soft on small ui text — these screenshots need
+                      // more of it
+                      quality={90}
+                      // whole screenshot stays visible, letterboxed on the
+                      // card's own dark face rather than cropped at the edges
+                      className="object-contain"
+                    />
+                  </CardHoverRevealMain>
+                  <CardHoverRevealContent className="space-y-4 rounded-2xl bg-[rgba(0,0,0,.5)] p-4 backdrop-blur-3xl">
+                    <div className="space-y-2">
+                      <h3 className="text-sm text-white/80">Stack</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {project.stack.map((tech) => (
+                          <Badge
+                            key={tech}
+                            className="rounded-full capitalize"
+                            variant="secondary"
+                          >
+                            {tech}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 space-y-2">
+                      <h3 className="font-medium text-white capitalize">
+                        {project.title}
+                      </h3>
+                      <p className="text-sm text-white/80">{project.blurb}</p>
+                    </div>
+                  </CardHoverRevealContent>
+                </CardHoverReveal>
+              </a>
+            ))}
+          </motion.div>
         </div>
       </div>
+
+      {/* fade the strip into the panel instead of a hard clip at the edges —
+          the fixed page-timeline nav sits right at the left edge of the
+          viewport, and a card butting straight up against it read as one
+          crowded wall instead of two things sharing the space */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 w-[18vw] max-w-40"
+        style={{
+          background: `linear-gradient(90deg, ${PROJECTS_STAGE_COLOR} 25%, transparent)`,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 w-[18vw] max-w-40"
+        style={{
+          background: `linear-gradient(270deg, ${PROJECTS_STAGE_COLOR} 25%, transparent)`,
+        }}
+      />
     </div>
   );
 }

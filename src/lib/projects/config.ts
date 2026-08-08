@@ -14,9 +14,12 @@ export const PROJECTS_PROGRESS = {
   end: PROJECTS_END_STEP / LAST_STEP,
 } as const;
 
-/** The panel spends the middle half of its window fully covering the PC. */
-export const PROJECTS_REVEAL_FRACTION = 0.25;
-export const PROJECTS_EXIT_FRACTION = 0.75;
+/** The panel spends most of its window fully covering the PC — the entry and
+ *  exit fades are quick on purpose, so nearly all the window is actual
+ *  browsing time instead of the carousel sitting frozen while the bloom
+ *  fades in or out. */
+export const PROJECTS_REVEAL_FRACTION = 0.15;
+export const PROJECTS_EXIT_FRACTION = 0.85;
 
 /**
  * Ramps up across the entry, sits at 1 through the hold, ramps back down across
@@ -38,9 +41,13 @@ export function transitionEnvelope(progress: number) {
  * finishes and the last one is still resting when the panel starts leaving.
  */
 export function carouselProgress(progress: number) {
-  const span = PROJECTS_EXIT_FRACTION - PROJECTS_REVEAL_FRACTION;
-  const held = (progress - PROJECTS_REVEAL_FRACTION) / span;
-  return Math.min(1, Math.max(0, held));
+  const CAROUSEL_START = 0;
+  const CAROUSEL_END = PROJECTS_EXIT_FRACTION;
+
+  const span = CAROUSEL_END - CAROUSEL_START;
+  const value = (progress - CAROUSEL_START) / span;
+
+  return Math.min(1, Math.max(0, value));
 }
 
 // ===== THE BLOOM =====

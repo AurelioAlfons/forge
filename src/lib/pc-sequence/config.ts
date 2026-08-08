@@ -11,11 +11,12 @@ export const ZOOM_PLAYBACK_FRAME_COUNT =
   ZOOM_FRAME_COUNT + SPIN_EXTRA_PLAYBACK_FRAMES;
 export const FRAME_COUNT = ASSEMBLY_FRAME_COUNT + ZOOM_FRAME_COUNT;
 /** Scroll beats reserved for the Projects page between explosion and rebuild.
- *  Half the window is the hold phase where the carousel actually turns, so
- *  this scales with the project count. At 100 per turn each project gets
- *  roughly half a viewport of scroll, which at the old flat 120 was 147px and
- *  far too quick to read. */
-export const PROJECTS_PLAYBACK_FRAMES = 100 * Math.max(1, PROJECT_COUNT - 1);
+ *  Most of the window is the hold phase where the carousel actually turns
+ *  (see PROJECTS_REVEAL_FRACTION/PROJECTS_EXIT_FRACTION), so this scales
+ *  with the project count. Bumped from 100 to 260 per turn — 100, and then
+ *  170, both still rushed past the cards before there was time to look. */
+export const PROJECTS_PLAYBACK_FRAMES =
+  70 * Math.max(1, PROJECT_COUNT - 1);
 export const REASSEMBLY_START_STEP =
   ASSEMBLY_FRAME_COUNT + PROJECTS_PLAYBACK_FRAMES;
 export const ZOOM_LEG_START_STEP =
@@ -86,7 +87,7 @@ export const SCROLL_LENGTH_VH =
   PRE_PROJECTS_PLAYBACK_FRAME_COUNT;
 
 /** How lazily the scrub chases the scrollbar. */
-export const SCRUB = 0.6;
+export const SCRUB = 0.1;
 
 // ===== ALPHA HIT TESTING =====
 

@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 import { initFluid } from "@/lib/fluid/fluid";
-import { carouselScale } from "@/lib/projects/carousel-config";
+import {
+  PROJECTS_STAGE_COLOR,
+  carouselScale,
+} from "@/lib/projects/carousel-config";
 import { useMediaQuery } from "@/components/pc-sequence/use-media-query";
 import { ProjectsCarousel, type CarouselHandle } from "./projects-carousel";
 
@@ -14,7 +17,6 @@ const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 //
 // fan sits at the stage centre, same assumption the skills honeycomb makes.
 // the colour stop travels too, opacity alone just looks like a fade.
-const PROJECTS_STAGE_COLOR = "#dad5cf";
 const BLOOM_GRADIENT =
   "radial-gradient(circle at 50% 50%," +
   " var(--accent, #ff7a3d) 0%," +

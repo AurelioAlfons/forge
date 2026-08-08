@@ -157,6 +157,10 @@ export function PcSequenceSection() {
     const projectsBloom = stage.querySelector<HTMLElement>(
       "[data-projects-bloom]",
     );
+    // sibling of this section, same as the boot reveal's own lookup above
+    const pageTimelineNav = document.querySelector<HTMLElement>(
+      "[data-page-timeline]",
+    );
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -164,6 +168,10 @@ export function PcSequenceSection() {
     const triggers: ScrollTrigger[] = [];
     let introTween: gsap.core.Tween | null = null;
     let socialTween: gsap.core.Tween | null = null;
+    let navEntranceTween: gsap.core.Tween | null = null;
+    // fires once per crossing into the window, not every frame inside it —
+    // re-arms once you've scrolled back out past the start again
+    let navEntranceArmed = true;
     let rafId = 0;
     let refreshRafId = 0;
 
@@ -329,6 +337,36 @@ export function PcSequenceSection() {
         const projectsProgress = clampUnit(
           toProjectsProgress(progressRef.current),
         );
+
+        // the nav ruler gets its own small arrival beat right as you cross
+        // into the projects window — same idea as the cards sliding in, just
+        // for an element that has to stay usable everywhere else on the
+        // page, so it's a one-shot tween on the crossing rather than
+        // something continuously bound to the envelope
+        if (projectsProgress > 0 && navEntranceArmed) {
+          navEntranceArmed = false;
+          if (pageTimelineNav) {
+            navEntranceTween?.kill();
+            navEntranceTween = gsap.fromTo(
+              pageTimelineNav,
+              { x: 56, autoAlpha: 0.15 },
+              {
+                x: 0,
+                autoAlpha: 1,
+                duration: 0.6,
+                ease: "power3.out",
+                onComplete: () => {
+                  gsap.set(pageTimelineNav, {
+                    clearProps: "transform,opacity,visibility",
+                  });
+                },
+              },
+            );
+          }
+        } else if (projectsProgress === 0) {
+          navEntranceArmed = true;
+        }
+
         if (projectsProgress !== lastProjectsProgress) {
           // one envelope drives all three, so the light, the panel and the dim
           // can't drift out of step with each other
@@ -485,6 +523,12 @@ export function PcSequenceSection() {
       if (socialTween && socialLinks) {
         socialTween.kill();
         gsap.set(socialLinks, { clearProps: "transform,opacity,visibility" });
+      }
+      if (navEntranceTween && pageTimelineNav) {
+        navEntranceTween.kill();
+        gsap.set(pageTimelineNav, {
+          clearProps: "transform,opacity,visibility",
+        });
       }
     };
   }, [frames, phase, reducedMotion]);
