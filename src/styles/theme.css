@@ -8,6 +8,19 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-accent: var(--accent);
+
+  /* shadcn/ui compatibility layer — this project's own tokens above are the
+     real system; these exist only so components copied from shadcn (Badge,
+     etc.) resolve to real colors instead of rendering transparent. */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-primary: var(--accent);
+  --color-primary-foreground: #14161a;
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--bg);
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-ring: var(--accent);
 }
 
 :root {
