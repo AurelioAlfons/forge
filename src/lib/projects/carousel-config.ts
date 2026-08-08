@@ -4,7 +4,7 @@ import { PROJECT_COUNT } from "./projects-data";
 // it's travelled — same contract the old turntable ring exposed, just a
 // straight line instead of an orbit.
 
-export const CARD_WIDTH_PX = 820;
+export const CARD_WIDTH_PX = 970;
 export const CARD_HEIGHT_PX = 500;
 export const CARD_GAP_PX = 48;
 export const STAGE_HEIGHT_PX = CARD_HEIGHT_PX + 80;

@@ -13,6 +13,15 @@ export type Project = {
 // pulled from the old portfolio's ProjectSection.tsx, plus archive and this
 // site's own predecessor. cat-mail dropped on request.
 export const projects = [
+    {
+    slug: "portfolio",
+    title: "Portfolio",
+    blurb:
+      "My previous personal site: a WebGL fluid background, a live Spotify player, and scroll-driven motion throughout.",
+    stack: ["Next.js", "TypeScript", "Tailwind", "GLSL"],
+    link: "https://aurelioalfons-portfolio.vercel.app/#home",
+    thumbnail: "/projects/portfolio.webp",
+  },
   {
     slug: "pokesim",
     title: "PokeSim",
@@ -48,15 +57,6 @@ export const projects = [
     stack: ["TypeScript"],
     link: "https://lnkd.in/p/grZn-yGc",
     thumbnail: "/projects/archive.png",
-  },
-  {
-    slug: "portfolio",
-    title: "Portfolio",
-    blurb:
-      "My previous personal site: a WebGL fluid background, a live Spotify player, and scroll-driven motion throughout.",
-    stack: ["Next.js", "TypeScript", "Tailwind", "GLSL"],
-    link: "https://aurelioalfons-portfolio.vercel.app/#home",
-    thumbnail: "/projects/portfolio.webp",
   },
 ] as const satisfies readonly Project[];
 
