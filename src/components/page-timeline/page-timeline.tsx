@@ -14,6 +14,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useIntro } from "@/components/intro/use-intro";
 import { getSkillsAnchorScrollY } from "@/lib/skills/config";
 import { getProjectsAnchorScrollY } from "@/lib/projects/config";
+import { getSectionAnchorScrollY } from "@/lib/navigation/anchors";
 import {
   timelineItems,
   type TimelineItem,
@@ -28,14 +29,21 @@ function clamp(value: number) {
   return Math.min(1, Math.max(0, value));
 }
 
-// "skills" doesn't have a fixed fraction — it rides the fan spin, so its real
-// position depends on document height like everything else. every other stop
-// stays a static guess until step 0's full architecture pass.
-type DynamicProgress = { projects: number; skills: number };
+// none of the four sit at a fixed fraction — projects/skills ride the pinned
+// pc sequence, experience/contact are real sections whose offset moves
+// whenever the page grows. "home" is the only stop that's actually always 0.
+type DynamicProgress = {
+  projects: number;
+  skills: number;
+  experience: number;
+  contact: number;
+};
 
 function resolvedProgress(item: TimelineItem, dynamic: DynamicProgress) {
   if (item.id === "projects") return dynamic.projects;
   if (item.id === "skills") return dynamic.skills;
+  if (item.id === "experience") return dynamic.experience;
+  if (item.id === "contact") return dynamic.contact;
   return item.progress;
 }
 
@@ -69,6 +77,12 @@ export function PageTimeline() {
   );
   const projectsProgressRef = useRef<number>(
     timelineItems.find((item) => item.id === "projects")?.progress ?? 0.25,
+  );
+  const experienceProgressRef = useRef<number>(
+    timelineItems.find((item) => item.id === "experience")?.progress ?? 0.75,
+  );
+  const contactProgressRef = useRef<number>(
+    timelineItems.find((item) => item.id === "contact")?.progress ?? 1,
   );
   const trackRectRef = useRef<DOMRect | null>(null);
   const activeIdRef = useRef<TimelineItem["id"]>(timelineItems[0].id);
@@ -121,6 +135,23 @@ export function PageTimeline() {
         getSkillsAnchorScrollY(pcSection) / maxScrollRef.current,
       );
     }
+
+    // plain sections in normal flow — no pin math needed, just where they sit
+    if (maxScrollRef.current > 0) {
+      const experienceSection = document.getElementById("experience");
+      if (experienceSection) {
+        experienceProgressRef.current = clamp(
+          getSectionAnchorScrollY(experienceSection) / maxScrollRef.current,
+        );
+      }
+
+      const contactSection = document.getElementById("contact");
+      if (contactSection) {
+        contactProgressRef.current = clamp(
+          getSectionAnchorScrollY(contactSection) / maxScrollRef.current,
+        );
+      }
+    }
   }, []);
 
   const applyProgress = useCallback((nextProgress: number) => {
@@ -136,6 +167,8 @@ export function PageTimeline() {
     const nextItem = nearestItem(progress, {
       projects: projectsProgressRef.current,
       skills: skillsProgressRef.current,
+      experience: experienceProgressRef.current,
+      contact: contactProgressRef.current,
     });
     if (nextItem.id === activeIdRef.current) return;
     activeIdRef.current = nextItem.id;
@@ -169,6 +202,8 @@ export function PageTimeline() {
         resolvedProgress(item, {
           projects: projectsProgressRef.current,
           skills: skillsProgressRef.current,
+          experience: experienceProgressRef.current,
+          contact: contactProgressRef.current,
         }),
         behavior,
       );

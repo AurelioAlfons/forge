@@ -18,4 +18,9 @@ export const site = {
     linkedin: "https://www.linkedin.com/in/aurelio-alfons",
     email: "yuroalfons0407@gmail.com",
   },
+  // real pdf now lives in public/resume/, copied straight from the CV folder
+  resume: {
+    href: "/resume/Aurelio_Hevi_Alfons_CV.pdf",
+    filename: "Aurelio_Hevi_Alfons_CV.pdf",
+  },
 } as const;

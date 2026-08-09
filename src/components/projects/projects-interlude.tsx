@@ -157,7 +157,7 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
         <div className="pointer-events-none absolute inset-x-0 top-[12%] flex justify-center">
           <h2
             aria-label="My Projects"
-            className="text-step-5 -translate-x-[8vw] font-semibold tracking-tight text-black"
+            className="text-step-5 translate-x-[-8vw] font-semibold tracking-tight text-black"
           >
             <HeroShutterText text="MY PROJECTS" tone="on-light" />
           </h2>

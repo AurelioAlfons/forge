@@ -42,6 +42,29 @@
   }
 }
 
+/* ===== RESUME CARD =====
+
+  Same gold-glow accent as the skill hex tiles and the social icon hover —
+  a hex's clip-path filter doesn't work on a plain rectangle, so this is the
+  border/shadow version of the same idea instead of a new treatment.
+*/
+.resume-card {
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.resume-card:hover {
+  border-color: rgba(223, 168, 18, 0.75);
+  box-shadow: 0 0 32px rgba(223, 168, 18, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-card {
+    transition: none;
+  }
+}
+
 @utility container-page {
   width: 100%;
   margin-inline: auto;

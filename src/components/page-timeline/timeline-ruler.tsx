@@ -81,10 +81,10 @@ export function TimelineRuler({
                 style={{ top: `${(tick / (TICK_COUNT - 1)) * 100}%` }}
                 className={`absolute left-1/2 h-px -translate-x-1/2 -translate-y-1/2 ${
                   major
-                    ? "w-6 bg-[#a8abb2] group-focus-visible:bg-[#f5c542]"
+                    ? "w-7 bg-[#c7cad1] group-focus-visible:bg-[#f5c542]"
                     : middle
-                      ? "w-4 bg-[#747880] group-focus-visible:bg-[#f5c542]/80"
-                      : "w-2.5 bg-[#555961] group-focus-visible:bg-[#f5c542]/60"
+                      ? "w-4 bg-[#63676f] group-focus-visible:bg-[#f5c542]/80"
+                      : "w-2.5 bg-[#4a4e56] group-focus-visible:bg-[#f5c542]/60"
                 }`}
               />
             );
