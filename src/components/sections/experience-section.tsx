@@ -28,6 +28,7 @@ const EXPERIENCE_FLUID_PALETTE = [
 export function ExperienceSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const fadeRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
 
@@ -36,32 +37,78 @@ export function ExperienceSection() {
   useEffect(() => {
     const section = sectionRef.current;
     const fade = fadeRef.current;
-    if (!section || !fade || reducedMotion) return;
+    const content = contentRef.current;
+    if (!section || !fade || !content || reducedMotion) return;
 
     gsap.set(fade, {
       clipPath: "inset(0 0 100% 0)",
       yPercent: 4,
     });
-    const tween = gsap.to(fade, {
-      clipPath: "inset(0 0 0% 0)",
-      yPercent: 0,
-      ease: "none",
-      paused: true,
+    gsap.set(content, { autoAlpha: 0, y: 56 });
+
+    const enterTimeline = gsap
+      .timeline({ paused: true })
+      .to(fade, {
+        clipPath: "inset(0 0 0% 0)",
+        yPercent: 0,
+        ease: "none",
+        duration: 0.68,
+      })
+      .to(
+        content,
+        {
+          autoAlpha: 1,
+          y: 0,
+          ease: "power2.out",
+          duration: 0.32,
+        },
+        0.5,
+      );
+
+    const enterTrigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top bottom",
+      end: "top top",
+      scrub: 0.45,
+      animation: enterTimeline,
+      invalidateOnRefresh: true,
     });
 
-    const trigger = ScrollTrigger.create({
+    const exitTimeline = gsap
+      .timeline({ paused: true })
+      .to(content, {
+        autoAlpha: 0,
+        y: -56,
+        ease: "power2.in",
+        duration: 0.32,
+      })
+      .to(
+        fade,
+        {
+          clipPath: "inset(100% 0 0 0)",
+          yPercent: -4,
+          ease: "none",
+          duration: 0.68,
+        },
+        0.18,
+      );
+
+    const exitTrigger = ScrollTrigger.create({
       trigger: section,
-      start: "top 92%",
-      end: "top 18%",
+      start: "bottom bottom",
+      end: "bottom top",
       scrub: 0.45,
-      animation: tween,
+      animation: exitTimeline,
       invalidateOnRefresh: true,
     });
 
     return () => {
-      trigger.kill();
-      tween.kill();
+      enterTrigger.kill();
+      exitTrigger.kill();
+      enterTimeline.kill();
+      exitTimeline.kill();
       gsap.set(fade, { clearProps: "clipPath,transform" });
+      gsap.set(content, { clearProps: "opacity,transform,visibility" });
     };
   }, [reducedMotion]);
 
@@ -136,11 +183,11 @@ export function ExperienceSection() {
     <section
       id="experience"
       ref={sectionRef}
-      className="relative min-h-screen bg-black"
+      className="relative -mt-[100svh] min-h-[200svh] bg-black"
     >
       <div
         ref={fadeRef}
-        className="py-3xl relative isolate min-h-screen pb-[clamp(12rem,24vh,20rem)]"
+        className="py-3xl sticky top-0 isolate flex h-svh items-center overflow-hidden"
       >
         {/* full-bleed white page, same treatment as the Projects panel —
             edge to edge regardless of container-page's own max-width */}
@@ -158,7 +205,7 @@ export function ExperienceSection() {
           style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
         />
 
-        <div className="container-page relative">
+        <div ref={contentRef} className="container-page relative">
           <div className="mb-m flex items-center gap-2">
             <DecorMark variant="orbit" tone="on-light" size={16} />
             <DecorArrow tone="on-light" />
