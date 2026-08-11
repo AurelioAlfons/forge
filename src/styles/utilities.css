@@ -1,43 +1,49 @@
-/* ===== SKILLS HONEYCOMB TILES =====
+/* ===== SKILLS ORBIT ICONS =====
 
-  Decorative only. The readable list is the sr-only one in skills-overlay.tsx,
+  Decorative only. The readable list is the sr-only one in skills-orbit.tsx,
   so these stay aria-hidden and out of the tab order. Mouse affordance, nothing
   more. The parent ul is pointer-events:none so the fan and the gaps stay
   scroll-through, and each tile opts itself back in.
 */
-.skill-hex-tile {
+.skill-orbit-tile {
   cursor: pointer;
   pointer-events: auto;
   /* coloured glow plus a dark cast under it. the second shadow is what lifts
-     the tile off the fan instead of leaving it looking painted on */
+     the tile off the ring instead of leaving it looking painted on */
   filter: drop-shadow(
-      0 0 calc(var(--skill-hex-s, 0px) * 0.28)
-        color-mix(in srgb, var(--hex-color) 55%, transparent)
+      0 0 calc(var(--skill-icon-s, 0px) * 0.28)
+        color-mix(in srgb, var(--orbit-color) 55%, transparent)
     )
     drop-shadow(
-      0 calc(var(--skill-hex-s, 0px) * 0.06) calc(var(--skill-hex-s, 0px) * 0.1)
-        rgba(0, 0, 0, 0.75)
+      0 calc(var(--skill-icon-s, 0px) * 0.06)
+        calc(var(--skill-icon-s, 0px) * 0.1) rgba(0, 0, 0, 0.75)
     );
   transition:
     transform 200ms ease,
     filter 200ms ease;
 }
 
-.skill-hex-tile:hover {
-  transform: scale(1.1) translateY(calc(var(--skill-hex-s, 0px) * -0.04));
-  filter: drop-shadow(0 0 calc(var(--skill-hex-s, 0px) * 0.5) var(--hex-color))
+.skill-orbit-tile:hover {
+  transform: scale(1.1) translateY(calc(var(--skill-icon-s, 0px) * -0.04));
+  filter: drop-shadow(
+      0 0 calc(var(--skill-icon-s, 0px) * 0.5) var(--orbit-color)
+    )
     drop-shadow(
-      0 calc(var(--skill-hex-s, 0px) * 0.12)
-        calc(var(--skill-hex-s, 0px) * 0.16) rgba(0, 0, 0, 0.8)
+      0 calc(var(--skill-icon-s, 0px) * 0.12)
+        calc(var(--skill-icon-s, 0px) * 0.16) rgba(0, 0, 0, 0.8)
     )
     brightness(1.18) saturate(1.25);
 }
 
+.skill-orbit-tile:hover .skill-orbit-label {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .skill-hex-tile {
+  .skill-orbit-tile {
     transition: none;
   }
-  .skill-hex-tile:hover {
+  .skill-orbit-tile:hover {
     transform: none;
   }
 }

@@ -90,7 +90,19 @@ export function ContactSection() {
   }
 
   return (
-    <section id="contact" ref={sectionRef} className="container-page py-2xl">
+    <section
+      id="contact"
+      ref={sectionRef}
+      className="container-page py-2xl relative isolate"
+    >
+      {/* Fill the deliberate content gap above Contact with black as well, so
+          once this chapter enters the viewport no strip of Experience white
+          remains visible. The layout gap itself is still preserved. */}
+      <div
+        aria-hidden="true"
+        className="absolute -top-[clamp(12rem,24vh,20rem)] right-1/2 bottom-0 left-1/2 -z-10 -mx-[50vw] w-screen bg-black"
+      />
+
       <div ref={gridRef} className="gap-m grid lg:grid-cols-2">
         <div className="border-border p-l rounded-2xl border bg-white/[0.03]">
           <div ref={formTextRef}>

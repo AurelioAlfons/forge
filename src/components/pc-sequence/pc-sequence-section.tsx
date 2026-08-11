@@ -16,11 +16,18 @@ import {
   HEX_TWEEN_DURATION,
   MATERIALIZE_FRACTION,
   SPIN_FORWARD_PROGRESS,
-  computeHoneycombGeometry,
 } from "@/lib/skills/config";
+import {
+  RING1_COUNT,
+  RING2_COUNT,
+  computeOrbitGeometry,
+  phaseShiftForIndex,
+  ringAngleTurns,
+  type OrbitGeometry,
+} from "@/lib/skills/orbit";
 import { SKILL_COUNT, skills } from "@/lib/skills/skills-data";
 import { useIntro, useIntroHoldProgress } from "@/components/intro/use-intro";
-import { SkillsOverlay } from "@/components/skills/skills-overlay";
+import { SkillsOrbit } from "@/components/skills/skills-orbit";
 import { ProjectsInterlude } from "@/components/projects/projects-interlude";
 import {
   PROJECTS_PROGRESS,
@@ -36,6 +43,12 @@ import { ProfileOverlay } from "./profile-overlay";
 import { BootLoader } from "./boot-loader";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// how much the rendered fan visually shrinks during the skills orbit, on
+// top of the orbit geometry's own smaller fan-clearance radius — an actual
+// zoom out on the canvas, not just more room for the rings around it. each
+// cut has been relative to the last: 0.65 -> 0.52 -> 0.416 -> 0.3744 (10% off)
+const FAN_SHRINK_SCALE = 0.3744;
 
 export function PcSequenceSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -175,12 +188,14 @@ export function PcSequenceSection() {
     let rafId = 0;
     let refreshRafId = 0;
 
-    // ===== SKILLS HONEYCOMB =====
+    // ===== SKILLS ORBIT =====
     // one paused timeline scrubbed by the frame loop below. a second
     // scrolltrigger here would just fight the pin over the same gesture.
-    // three acts on one 0..1 timeline: tiles materialize one by one, hold
+    // three acts on one 0..1 timeline: icons materialize one by one, hold
     // complete, then dematerialize in the same order. by the time the fan
-    // starts pulling back out there's nothing left on screen.
+    // starts pulling back out there's nothing left on screen. position is a
+    // separate concern entirely — the icon's own translate, written every
+    // tick below, not part of this timeline at all.
     const skillTiles: HTMLElement[] = [];
     const skillsTimeline = gsap.timeline({ paused: true });
     const lastIndex = SKILL_COUNT - 1;
@@ -194,6 +209,13 @@ export function PcSequenceSection() {
       lastIndex > 0
         ? (DEMATERIALIZE_FRACTION - HEX_TWEEN_DURATION) / lastIndex
         : 0;
+
+    // phase per icon is just its place in its own ring — simpler than
+    // hand-picking a shift per skill, and re-ringing one later needs no re-tuning
+    type SkillOrbitEntry = { el: HTMLElement; ring: 1 | 2; phaseShift: number };
+    const skillOrbitEntries: SkillOrbitEntry[] = [];
+    let ring1Index = 0;
+    let ring2Index = 0;
 
     for (const skill of skills) {
       const tile = stage.querySelector<HTMLElement>(
@@ -225,7 +247,89 @@ export function PcSequenceSection() {
         },
         dematerializeStart + i * dematerializeStep,
       );
+
+      const orbitEl = stage.querySelector<HTMLElement>(
+        `[data-skill-orbit="${skill.id}"]`,
+      );
+      if (orbitEl) {
+        const indexInRing = skill.ring === 1 ? ring1Index++ : ring2Index++;
+        const ringCount = skill.ring === 1 ? RING1_COUNT : RING2_COUNT;
+        skillOrbitEntries.push({
+          el: orbitEl,
+          ring: skill.ring,
+          phaseShift: phaseShiftForIndex(indexInRing, ringCount),
+        });
+      }
     }
+
+    // the two ring outlines fade with the icon cluster as a whole, not
+    // per-icon staggered like the tiles above — one shared visual element,
+    // so it gets one fade in and one fade out instead of 17 of them
+    const ringGlows = stage.querySelectorAll<HTMLElement>("[data-skill-ring]");
+    if (ringGlows.length) {
+      skillsTimeline.fromTo(
+        ringGlows,
+        { opacity: 0 },
+        { opacity: 1, duration: MATERIALIZE_FRACTION, ease: "power1.out" },
+        0,
+      );
+      skillsTimeline.to(
+        ringGlows,
+        { opacity: 0, duration: DEMATERIALIZE_FRACTION, ease: "power1.in" },
+        dematerializeStart,
+      );
+    }
+
+    // Temporary restrained reveal until Aurelio supplies the final text-motion
+    // reference. It shares the exact Skills window, so reversing scroll also
+    // reverses the title without a separate ScrollTrigger.
+    const skillsTitle = stage.querySelector<HTMLElement>("[data-skills-title]");
+    if (skillsTitle) {
+      skillsTimeline.fromTo(
+        skillsTitle,
+        { opacity: 0, x: -32 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: MATERIALIZE_FRACTION,
+          ease: "power2.out",
+        },
+        0,
+      );
+      skillsTimeline.to(
+        skillsTitle,
+        {
+          opacity: 0,
+          x: -32,
+          duration: DEMATERIALIZE_FRACTION,
+          ease: "power2.in",
+        },
+        dematerializeStart,
+      );
+    }
+
+    // an actual visual zoom-out on the rendered fan itself, not just more
+    // clearance in the ring maths — shrinks in step with the icons
+    // materializing, holds small through the orbit, grows back to full
+    // size as they dematerialize, same timeline everything else here rides.
+    // sine.inOut on both ends (gentler than the power2 curve before it) so
+    // it reads as one continuous, controlled glide rather than a snap in
+    // either direction
+    skillsTimeline.fromTo(
+      canvas,
+      { scale: 1 },
+      {
+        scale: FAN_SHRINK_SCALE,
+        duration: MATERIALIZE_FRACTION,
+        ease: "sine.inOut",
+      },
+      0,
+    );
+    skillsTimeline.to(
+      canvas,
+      { scale: 1, duration: DEMATERIALIZE_FRACTION, ease: "sine.inOut" },
+      dematerializeStart,
+    );
 
     // mapRange happily extrapolates past its bounds, so the clamp is load-bearing
     const toSkillProgress = gsap.utils.mapRange(
@@ -236,6 +340,17 @@ export function PcSequenceSection() {
     );
     const clampUnit = gsap.utils.clamp(0, 1);
     let lastSkillProgress = -1;
+    let orbitGeometry: OrbitGeometry = {
+      icon: 0,
+      iconVisual: 0,
+      fanRadius: 0,
+      ring1Radius: 0,
+      ring2Radius: 0,
+    };
+    // rotation runs on its own clock, independent of scroll — reveal
+    // (materialize/hold/dematerialize above) still rides skillProgress,
+    // only the spin itself doesn't
+    const spinStartedAt = performance.now();
 
     // ===== PROJECTS INTERLUDE =====
     // The PC stays on its final exploded frame while this panel rises, rests,
@@ -260,12 +375,24 @@ export function PcSequenceSection() {
       canvas!.style.height = `${h}px`;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // the honeycomb is sized off the fan as it actually lands on screen, so
-      // the cluster reads as tiled onto the disc, not stretched over the page
-      const comb = computeHoneycombGeometry(w, h);
-      stage!.style.setProperty("--skill-hex-s", `${comb.hex}px`);
-      stage!.style.setProperty("--skill-fan-r", `${comb.fanRadius}px`);
-      stage!.style.setProperty("--skill-gap", `${comb.gap}px`);
+      // the rings are sized off the fan as it actually lands on screen, so
+      // the orbit reads as tiled onto the disc, not stretched over the page
+      orbitGeometry = computeOrbitGeometry(w, h);
+      // visual size, not the spacing size — ring radii below still use
+      // orbitGeometry.icon so bumping this doesn't silently move the rings
+      stage!.style.setProperty(
+        "--skill-icon-s",
+        `${orbitGeometry.iconVisual}px`,
+      );
+      stage!.style.setProperty("--skill-fan-r", `${orbitGeometry.fanRadius}px`);
+      stage!.style.setProperty(
+        "--skill-ring1-r",
+        `${orbitGeometry.ring1Radius}px`,
+      );
+      stage!.style.setProperty(
+        "--skill-ring2-r",
+        `${orbitGeometry.ring2Radius}px`,
+      );
 
       drawnIndexRef.current = -1; // force a redraw at the new size
     }
@@ -403,6 +530,28 @@ export function PcSequenceSection() {
           skillsTimeline.progress(skillProgress);
           lastSkillProgress = skillProgress;
         }
+
+        // position is separate from the timeline above — an icon's ring
+        // radius plus its own turning angle, written straight to its own
+        // translate so gsap's opacity/scale tween on the child never fights
+        // it. runs every frame, not just when scroll moves — the spin is on
+        // its own clock now
+        const elapsedSeconds = (performance.now() - spinStartedAt) / 1000;
+        for (const entry of skillOrbitEntries) {
+          const radius =
+            entry.ring === 1
+              ? orbitGeometry.ring1Radius
+              : orbitGeometry.ring2Radius;
+          const turns = ringAngleTurns(
+            entry.ring,
+            elapsedSeconds,
+            entry.phaseShift,
+          );
+          const angle = turns * Math.PI * 2;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          entry.el.style.transform = `translate(-50%, -50%) translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
+        }
       }
 
       rafId = requestAnimationFrame(tick);
@@ -462,7 +611,7 @@ export function PcSequenceSection() {
     if (reducedMotion) {
       progressRef.current = 0;
       draw(0);
-      // no honeycomb at all here. frozen tiles over a static pc would just be
+      // no orbit at all here. frozen icons over a static pc would just be
       // a sticker, and the sr-only list already covers this case
     } else if (phase === "ready") {
       // only pinned once the lock is off, otherwise the page measures short
@@ -506,13 +655,16 @@ export function PcSequenceSection() {
       // than clearProps, which would strip the inline opacity and flash them on
       skillsTimeline.kill();
       if (skillTiles.length) gsap.set(skillTiles, { opacity: 0, scale: 0.6 });
+      if (ringGlows.length) gsap.set(ringGlows, { opacity: 0 });
+      if (skillsTitle) gsap.set(skillsTitle, { opacity: 0, x: -32 });
       if (projectsPanel) projectsPanel.style.opacity = "0";
       if (projectsBloom) {
         projectsBloom.style.opacity = "0";
         projectsBloom.style.removeProperty("--projects-bloom-spread");
       }
-      // otherwise a remount could come back already dimmed
+      // otherwise a remount could come back already dimmed or still shrunk
       canvas.style.filter = "";
+      gsap.set(canvas, { clearProps: "transform" });
 
       // only clear what this effect actually touched, so a late frame landing
       // mid-reveal can't wipe the other timeline's values
@@ -551,7 +703,7 @@ export function PcSequenceSection() {
           className="pointer-events-none absolute inset-0 h-full w-full"
         />
 
-        <SkillsOverlay />
+        <SkillsOrbit reducedMotion={reducedMotion} />
 
         <ProjectsInterlude carouselRef={carouselRef} />
 
