@@ -28,6 +28,8 @@ import {
 import { SKILL_COUNT, skills } from "@/lib/skills/skills-data";
 import { useIntro, useIntroHoldProgress } from "@/components/intro/use-intro";
 import { SkillsOrbit } from "@/components/skills/skills-orbit";
+import { ScrollStory } from "@/components/typography/scroll-story";
+import { storyBeats } from "@/lib/typography/story-data";
 import { ProjectsInterlude } from "@/components/projects/projects-interlude";
 import {
   PROJECTS_PROGRESS,
@@ -187,6 +189,77 @@ export function PcSequenceSection() {
     let navEntranceArmed = true;
     let rafId = 0;
     let refreshRafId = 0;
+
+    // ===== TYPOGRAPHY STORY =====
+    // one silent 0..1 clock keeps these absolute positions tied to the pc's
+    // own progress. no extra scroll listener, and dragging backwards just
+    // seeks the same masks in reverse.
+    const storyClock = { value: 0 };
+    const storyTimeline = gsap.timeline({ paused: true });
+    storyTimeline.to(storyClock, { value: 1, duration: 1, ease: "none" }, 0);
+
+    if (!reducedMotion) {
+      for (const beat of storyBeats) {
+        const statement = stage.querySelector<HTMLElement>(
+          `[data-story-statement="${beat.id}"]`,
+        );
+        if (!statement) continue;
+
+        const lines =
+          statement.querySelectorAll<HTMLElement>("[data-story-line]");
+        const accents = statement.querySelectorAll<HTMLElement>(
+          "[data-story-accent]",
+        );
+        const enterSpan = beat.enterEnd - beat.start;
+        const exitSpan = beat.end - beat.exitStart;
+        const enterStagger = lines.length > 1 ? enterSpan * 0.08 : 0;
+        const exitStagger = lines.length > 1 ? exitSpan * 0.08 : 0;
+
+        storyTimeline.fromTo(
+          lines,
+          { yPercent: 110, autoAlpha: 0, letterSpacing: "0.08em" },
+          {
+            yPercent: 0,
+            autoAlpha: 1,
+            letterSpacing: "0em",
+            duration: enterSpan - enterStagger * (lines.length - 1),
+            stagger: enterStagger,
+            ease: "power3.out",
+          },
+          beat.start,
+        );
+
+        if (accents.length) {
+          storyTimeline.fromTo(
+            accents,
+            { x: 14, opacity: 0.35 },
+            {
+              x: 0,
+              opacity: 1,
+              duration: enterSpan * 0.72,
+              stagger: enterSpan * 0.08,
+              ease: "power3.out",
+            },
+            beat.start + enterSpan * 0.2,
+          );
+        }
+
+        storyTimeline.to(
+          lines,
+          {
+            yPercent: -110,
+            autoAlpha: 0,
+            duration: exitSpan - exitStagger * (lines.length - 1),
+            stagger: exitStagger,
+            ease: "power3.in",
+          },
+          beat.exitStart,
+        );
+      }
+    }
+
+    const storyLines = stage.querySelectorAll<HTMLElement>("[data-story-line]");
+    let lastStoryProgress = -1;
 
     // ===== SKILLS ORBIT =====
     // one paused timeline scrubbed by the frame loop below. a second
@@ -461,6 +534,11 @@ export function PcSequenceSection() {
       // the hexes ride the fan spin off the same progress value, just a
       // different slice of it
       if (!reducedMotion) {
+        if (progressRef.current !== lastStoryProgress) {
+          storyTimeline.progress(progressRef.current);
+          lastStoryProgress = progressRef.current;
+        }
+
         const projectsProgress = clampUnit(
           toProjectsProgress(progressRef.current),
         );
@@ -654,6 +732,14 @@ export function PcSequenceSection() {
       // put the tiles back to the resting state react renders them at, rather
       // than clearProps, which would strip the inline opacity and flash them on
       skillsTimeline.kill();
+      storyTimeline.kill();
+      if (storyLines.length) {
+        gsap.set(storyLines, {
+          opacity: 0,
+          yPercent: 110,
+          clearProps: "visibility,letterSpacing",
+        });
+      }
       if (skillTiles.length) gsap.set(skillTiles, { opacity: 0, scale: 0.6 });
       if (ringGlows.length) gsap.set(ringGlows, { opacity: 0 });
       if (skillsTitle) gsap.set(skillsTitle, { opacity: 0, x: -32 });
@@ -702,6 +788,8 @@ export function PcSequenceSection() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 h-full w-full"
         />
+
+        <ScrollStory reducedMotion={reducedMotion} />
 
         <SkillsOrbit reducedMotion={reducedMotion} />
 

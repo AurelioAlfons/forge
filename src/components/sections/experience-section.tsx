@@ -183,7 +183,7 @@ export function ExperienceSection() {
     <section
       id="experience"
       ref={sectionRef}
-      className="relative -mt-[100svh] min-h-[200svh] bg-black"
+      className="relative mt-[-100svh] min-h-[200svh] bg-black"
     >
       <div
         ref={fadeRef}
@@ -193,7 +193,7 @@ export function ExperienceSection() {
             edge to edge regardless of container-page's own max-width */}
         <div
           aria-hidden="true"
-          className="absolute inset-y-0 right-1/2 left-1/2 -z-10 -mx-[50vw] w-screen"
+          className="absolute inset-y-0 right-1/2 left-1/2 -z-10 mx-[-50vw] w-screen"
           style={{ backgroundColor: PROJECTS_STAGE_COLOR }}
         />
 
@@ -201,7 +201,7 @@ export function ExperienceSection() {
           ref={canvasRef}
           data-experience-fluid
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-1/2 left-1/2 -mx-[50vw] w-screen"
+          className="pointer-events-none absolute inset-y-0 right-1/2 left-1/2 mx-[-50vw] w-screen"
           style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
         />
 

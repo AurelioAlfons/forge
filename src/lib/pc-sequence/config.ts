@@ -2,6 +2,10 @@
 // about behaviour and not magic values.
 
 import { PROJECT_COUNT } from "@/lib/projects/projects-data";
+import {
+  DISASSEMBLY_PLAYBACK_FRAME_COUNT,
+  disassemblyFrameIndex,
+} from "@/lib/typography/story-timing";
 
 export const ASSEMBLY_FRAME_COUNT = 80;
 export const ZOOM_FRAME_COUNT = 80;
@@ -15,12 +19,14 @@ export const FRAME_COUNT = ASSEMBLY_FRAME_COUNT + ZOOM_FRAME_COUNT;
  *  (see PROJECTS_REVEAL_FRACTION/PROJECTS_EXIT_FRACTION), so this scales
  *  with the project count. Bumped from 100 to 260 per turn — 100, and then
  *  170, both still rushed past the cards before there was time to look. */
-export const PROJECTS_PLAYBACK_FRAMES =
-  70 * Math.max(1, PROJECT_COUNT - 1);
+export const PROJECTS_PLAYBACK_FRAMES = 70 * Math.max(1, PROJECT_COUNT - 1);
 export const REASSEMBLY_START_STEP =
-  ASSEMBLY_FRAME_COUNT + PROJECTS_PLAYBACK_FRAMES;
+  DISASSEMBLY_PLAYBACK_FRAME_COUNT + PROJECTS_PLAYBACK_FRAMES;
 export const ZOOM_LEG_START_STEP =
-  ASSEMBLY_FRAME_COUNT * 2 - 1 + PROJECTS_PLAYBACK_FRAMES;
+  DISASSEMBLY_PLAYBACK_FRAME_COUNT +
+  ASSEMBLY_FRAME_COUNT -
+  1 +
+  PROJECTS_PLAYBACK_FRAMES;
 export const PLAYBACK_FRAME_COUNT =
   ZOOM_LEG_START_STEP + ZOOM_PLAYBACK_FRAME_COUNT * 2 - 1;
 
@@ -60,7 +66,9 @@ export function playbackFrameIndex(step: number) {
   const zoomReverseStart = ZOOM_LEG_START_STEP + ZOOM_PLAYBACK_FRAME_COUNT;
 
   // blow it apart, hold for Projects, walk it home, zoom in, then rewind
-  if (step < ASSEMBLY_FRAME_COUNT) return step;
+  if (step < DISASSEMBLY_PLAYBACK_FRAME_COUNT) {
+    return disassemblyFrameIndex(step);
+  }
   if (step < REASSEMBLY_START_STEP) return ASSEMBLY_FRAME_COUNT - 1;
   if (step < ZOOM_LEG_START_STEP) return ZOOM_LEG_START_STEP - step - 1;
   if (step < zoomReverseStart) {
