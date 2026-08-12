@@ -10,7 +10,9 @@ import {
 export const ASSEMBLY_FRAME_COUNT = 80;
 export const ZOOM_FRAME_COUNT = 80;
 export const SPIN_START_ZOOM_FRAME = 40;
-export const SPIN_EXTRA_PLAYBACK_FRAMES = 240;
+// 240 made the fan linger for another ~4.5 viewports across both zoom legs.
+// half keeps the Skills hold readable without the timeline feeling parked.
+export const SPIN_EXTRA_PLAYBACK_FRAMES = 120;
 export const ZOOM_PLAYBACK_FRAME_COUNT =
   ZOOM_FRAME_COUNT + SPIN_EXTRA_PLAYBACK_FRAMES;
 export const FRAME_COUNT = ASSEMBLY_FRAME_COUNT + ZOOM_FRAME_COUNT;

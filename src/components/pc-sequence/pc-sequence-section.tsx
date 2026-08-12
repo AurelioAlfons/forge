@@ -192,8 +192,8 @@ export function PcSequenceSection() {
 
     // ===== TYPOGRAPHY STORY =====
     // one silent 0..1 clock keeps these absolute positions tied to the pc's
-    // own progress. no extra scroll listener, and dragging backwards just
-    // seeks the same masks in reverse.
+    // own progress. each phrase uses the hero title's exact block motion:
+    // arrive from 48px above, then travel up by 220% while fading away.
     const storyClock = { value: 0 };
     const storyTimeline = gsap.timeline({ paused: true });
     storyTimeline.to(storyClock, { value: 1, duration: 1, ease: "none" }, 0);
@@ -205,60 +205,38 @@ export function PcSequenceSection() {
         );
         if (!statement) continue;
 
-        const lines =
-          statement.querySelectorAll<HTMLElement>("[data-story-line]");
-        const accents = statement.querySelectorAll<HTMLElement>(
-          "[data-story-accent]",
-        );
         const enterSpan = beat.enterEnd - beat.start;
         const exitSpan = beat.end - beat.exitStart;
-        const enterStagger = lines.length > 1 ? enterSpan * 0.08 : 0;
-        const exitStagger = lines.length > 1 ? exitSpan * 0.08 : 0;
 
         storyTimeline.fromTo(
-          lines,
-          { yPercent: 110, autoAlpha: 0, letterSpacing: "0.08em" },
+          statement,
+          { y: -48, yPercent: 0, autoAlpha: 0 },
           {
+            y: 0,
             yPercent: 0,
             autoAlpha: 1,
-            letterSpacing: "0em",
-            duration: enterSpan - enterStagger * (lines.length - 1),
-            stagger: enterStagger,
+            duration: enterSpan,
             ease: "power3.out",
           },
           beat.start,
         );
 
-        if (accents.length) {
-          storyTimeline.fromTo(
-            accents,
-            { x: 14, opacity: 0.35 },
-            {
-              x: 0,
-              opacity: 1,
-              duration: enterSpan * 0.72,
-              stagger: enterSpan * 0.08,
-              ease: "power3.out",
-            },
-            beat.start + enterSpan * 0.2,
-          );
-        }
-
         storyTimeline.to(
-          lines,
+          statement,
           {
-            yPercent: -110,
+            yPercent: -220,
             autoAlpha: 0,
-            duration: exitSpan - exitStagger * (lines.length - 1),
-            stagger: exitStagger,
-            ease: "power3.in",
+            duration: exitSpan,
+            ease: "none",
           },
           beat.exitStart,
         );
       }
     }
 
-    const storyLines = stage.querySelectorAll<HTMLElement>("[data-story-line]");
+    const storyStatements = stage.querySelectorAll<HTMLElement>(
+      "[data-story-statement]",
+    );
     let lastStoryProgress = -1;
 
     // ===== SKILLS ORBIT =====
@@ -733,11 +711,12 @@ export function PcSequenceSection() {
       // than clearProps, which would strip the inline opacity and flash them on
       skillsTimeline.kill();
       storyTimeline.kill();
-      if (storyLines.length) {
-        gsap.set(storyLines, {
+      if (storyStatements.length && !reducedMotion) {
+        gsap.set(storyStatements, {
           opacity: 0,
-          yPercent: 110,
-          clearProps: "visibility,letterSpacing",
+          y: -48,
+          yPercent: 0,
+          clearProps: "visibility",
         });
       }
       if (skillTiles.length) gsap.set(skillTiles, { opacity: 0, scale: 0.6 });

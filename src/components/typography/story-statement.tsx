@@ -29,6 +29,7 @@ export function StoryStatement({
       data-story-statement={beat.id}
       aria-label={beat.label}
       className={`absolute z-8 flex flex-col ${placementClass}`}
+      style={staticMotion ? undefined : { opacity: 0 }}
     >
       <span
         aria-hidden="true"
@@ -43,7 +44,6 @@ export function StoryStatement({
           <span
             data-story-line={staticMotion ? undefined : ""}
             className={`${staticMotion ? "text-step-2 leading-[0.94]" : "text-step-5 leading-[0.88] max-sm:text-[clamp(2.35rem,11vw,3.3rem)]"} block font-semibold tracking-tight text-white uppercase will-change-transform`}
-            style={staticMotion ? undefined : { opacity: 0 }}
           >
             {line.map((segment, segmentIndex) => (
               <span
