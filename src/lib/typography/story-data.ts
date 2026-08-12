@@ -1,5 +1,5 @@
 import { PLAYBACK_FRAME_COUNT } from "@/lib/pc-sequence/config";
-import { STORY_HOLDS } from "./story-timing";
+import { STORY_HOLDS, STORY_TRANSITION_PLAYBACK_FRAMES } from "./story-timing";
 
 export type StoryPlacement =
   "lower-left" | "upper-right" | "upper-left" | "lower-right";
@@ -22,19 +22,19 @@ export type StoryBeat = {
 
 const LAST_STEP = PLAYBACK_FRAME_COUNT - 1;
 
-function beatWindow(
-  index: number,
-  enterFraction: number,
-  exitFraction: number,
-) {
+function beatWindow(index: number) {
   const hold = STORY_HOLDS[index];
-  const span = hold.endStep - hold.startStep;
+  const nextHold = STORY_HOLDS[index + 1];
+  const enterEnd = hold.startStep + STORY_TRANSITION_PLAYBACK_FRAMES;
+  // adjacent phrases cross in opposite directions instead of leaving a blank
+  // gap. the final phrase rests once, then gets the same 85-step exit speed.
+  const exitStart = nextHold?.startStep ?? enterEnd;
 
   return {
     start: hold.startStep / LAST_STEP,
-    enterEnd: (hold.startStep + span * enterFraction) / LAST_STEP,
-    exitStart: (hold.endStep - span * exitFraction) / LAST_STEP,
-    end: hold.endStep / LAST_STEP,
+    enterEnd: enterEnd / LAST_STEP,
+    exitStart: exitStart / LAST_STEP,
+    end: (exitStart + STORY_TRANSITION_PLAYBACK_FRAMES) / LAST_STEP,
   };
 }
 
@@ -48,7 +48,7 @@ export const storyBeats = [
       [{ text: "EXPERIENCES." }],
     ],
     placement: "lower-left",
-    ...beatWindow(0, 0.2, 0.25),
+    ...beatWindow(0),
   },
   {
     id: "ideas",
@@ -59,7 +59,7 @@ export const storyBeats = [
       [{ text: "PRODUCT." }],
     ],
     placement: "upper-right",
-    ...beatWindow(1, 0.2, 0.25),
+    ...beatWindow(1),
   },
   {
     id: "purpose",
@@ -70,7 +70,7 @@ export const storyBeats = [
       [{ text: "AUTOMATION." }],
     ],
     placement: "upper-left",
-    ...beatWindow(2, 0.18, 0.2),
+    ...beatWindow(2),
   },
   {
     id: "perform",
@@ -81,6 +81,6 @@ export const storyBeats = [
       [{ text: "BUILT TO " }, { text: "PERFORM.", accent: true }],
     ],
     placement: "lower-right",
-    ...beatWindow(3, 0.2, 0.25),
+    ...beatWindow(3),
   },
 ] as const satisfies readonly StoryBeat[];

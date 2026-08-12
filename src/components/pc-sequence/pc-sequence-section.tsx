@@ -192,8 +192,8 @@ export function PcSequenceSection() {
 
     // ===== TYPOGRAPHY STORY =====
     // one silent 0..1 clock keeps these absolute positions tied to the pc's
-    // own progress. each phrase uses the hero title's exact block motion:
-    // arrive from 48px above, then travel up by 220% while fading away.
+    // own progress. each phrase crosses the stage toward its authored spot:
+    // lower phrases travel down, upper phrases travel up.
     const storyClock = { value: 0 };
     const storyTimeline = gsap.timeline({ paused: true });
     storyTimeline.to(storyClock, { value: 1, duration: 1, ease: "none" }, 0);
@@ -205,15 +205,28 @@ export function PcSequenceSection() {
         );
         if (!statement) continue;
 
+        const targetIsLower = () =>
+          statement.offsetTop + statement.offsetHeight / 2 >=
+          stage.clientHeight / 2;
+        const aboveViewport = () =>
+          -(statement.offsetTop + statement.offsetHeight + 24);
+        const belowViewport = () =>
+          stage.clientHeight - statement.offsetTop + 24;
+        const enterFromOppositeEdge = () =>
+          targetIsLower() ? aboveViewport() : belowViewport();
+        const exitPastNearestEdge = () =>
+          targetIsLower() ? belowViewport() : aboveViewport();
         const enterSpan = beat.enterEnd - beat.start;
         const exitSpan = beat.end - beat.exitStart;
 
         storyTimeline.fromTo(
           statement,
-          { y: -48, yPercent: 0, autoAlpha: 0 },
+          {
+            y: enterFromOppositeEdge,
+            autoAlpha: 0,
+          },
           {
             y: 0,
-            yPercent: 0,
             autoAlpha: 1,
             duration: enterSpan,
             ease: "power3.out",
@@ -224,7 +237,7 @@ export function PcSequenceSection() {
         storyTimeline.to(
           statement,
           {
-            yPercent: -220,
+            y: exitPastNearestEdge,
             autoAlpha: 0,
             duration: exitSpan,
             ease: "none",
@@ -445,6 +458,9 @@ export function PcSequenceSection() {
         `${orbitGeometry.ring2Radius}px`,
       );
 
+      // offscreen story distances depend on the live stage and text size.
+      storyTimeline.invalidate();
+      lastStoryProgress = -1;
       drawnIndexRef.current = -1; // force a redraw at the new size
     }
 
@@ -714,9 +730,7 @@ export function PcSequenceSection() {
       if (storyStatements.length && !reducedMotion) {
         gsap.set(storyStatements, {
           opacity: 0,
-          y: -48,
-          yPercent: 0,
-          clearProps: "visibility",
+          clearProps: "transform,visibility",
         });
       }
       if (skillTiles.length) gsap.set(skillTiles, { opacity: 0, scale: 0.6 });
