@@ -1,7 +1,6 @@
 import {
   PLAYBACK_FRAME_COUNT,
   PROJECTS_PLAYBACK_FRAMES,
-  SCROLL_LENGTH_VH,
 } from "@/lib/pc-sequence/config";
 import { DISASSEMBLY_PLAYBACK_FRAME_COUNT } from "@/lib/typography/story-timing";
 
@@ -92,7 +91,9 @@ export function canvasDimFilter(dim: number) {
 
 export function getProjectsAnchorScrollY(pcSection: HTMLElement) {
   const holdMidpoint = (PROJECTS_PROGRESS.start + PROJECTS_PROGRESS.end) / 2;
-  return (
-    pcSection.offsetTop + window.innerHeight * SCROLL_LENGTH_VH * holdMidpoint
+  const pinnedDistance = Math.max(
+    0,
+    pcSection.scrollHeight - window.innerHeight,
   );
+  return pcSection.offsetTop + pinnedDistance * holdMidpoint;
 }

@@ -40,6 +40,8 @@ import {
 } from "@/lib/projects/config";
 import type { CarouselHandle } from "@/components/projects/projects-carousel";
 import { DecorReadout } from "@/components/decor/decor-readout";
+import { usePerformanceProfile } from "@/components/responsive/use-performance-profile";
+import { scrollLengthForProfile } from "@/lib/responsive/performance-profile";
 import { useFrameSequence } from "./use-frame-sequence";
 import { ProfileOverlay } from "./profile-overlay";
 import { BootLoader } from "./boot-loader";
@@ -67,6 +69,11 @@ export function PcSequenceSection() {
     useIntro();
   const holdProgress = useIntroHoldProgress();
   const { frames, ready } = useFrameSequence();
+  const performanceProfile = usePerformanceProfile();
+  const scrollLengthVh = scrollLengthForProfile(
+    SCROLL_LENGTH_VH,
+    performanceProfile,
+  );
 
   // frame 01 is drawable => the fan has done its job, let the reveal start
   useEffect(() => {
@@ -691,7 +698,7 @@ export function PcSequenceSection() {
         ScrollTrigger.create({
           trigger: section!,
           start: "top top",
-          end: `+=${window.innerHeight * SCROLL_LENGTH_VH}`,
+          end: `+=${window.innerHeight * scrollLengthVh}`,
           pin: stage!,
           pinSpacing: false,
           scrub: SCRUB,
@@ -762,13 +769,13 @@ export function PcSequenceSection() {
         });
       }
     };
-  }, [frames, phase, reducedMotion]);
+  }, [frames, phase, reducedMotion, scrollLengthVh]);
 
   return (
     <section
       ref={sectionRef}
       id="pc-sequence"
-      style={{ height: `${(SCROLL_LENGTH_VH + 1) * 100}svh` }}
+      style={{ height: `${(scrollLengthVh + 1) * 100}svh` }}
     >
       <div
         ref={stageRef}
@@ -784,7 +791,10 @@ export function PcSequenceSection() {
 
         <ScrollStory reducedMotion={reducedMotion} />
 
-        <SkillsOrbit reducedMotion={reducedMotion} />
+        <SkillsOrbit
+          reducedMotion={reducedMotion}
+          compact={performanceProfile === "phone"}
+        />
 
         <ProjectsInterlude carouselRef={carouselRef} />
 

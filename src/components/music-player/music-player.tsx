@@ -134,10 +134,10 @@ export function MusicPlayer() {
       ref={rootRef}
       data-music-player
       inert={introRunning || hiddenByScroll}
-      className={`fixed inset-x-2 top-[max(env(safe-area-inset-top),1.8rem)] z-50 mx-auto max-w-312 transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none sm:inset-x-4 ${introRunning || hiddenByScroll ? "pointer-events-none" : ""} ${hiddenByScroll ? "-translate-y-[calc(100%+3rem)] opacity-0" : "translate-y-0 opacity-100"}`}
+      className={`fixed inset-x-2 top-[max(env(safe-area-inset-top),0.75rem)] z-50 mx-auto max-w-312 transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none sm:inset-x-4 sm:top-[max(env(safe-area-inset-top),1.8rem)] ${introRunning || hiddenByScroll ? "pointer-events-none" : ""} ${hiddenByScroll ? "-translate-y-[calc(100%+3rem)] opacity-0" : "translate-y-0 opacity-100"}`}
     >
       <div className="border-border/80 px-2x\ sm:px-xs rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
-        <div className="relative z-10 grid min-h-14 grid-cols-[2.75rem_minmax(7rem,1fr)_minmax(4.5rem,0.8fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">
+        <div className="relative z-10 grid min-h-14 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">
           <button
             ref={playlistButtonRef}
             type="button"
@@ -160,13 +160,15 @@ export function MusicPlayer() {
             />
           </div>
 
-          <PlaybackTimeline
-            key={currentTrack?.id ?? "empty"}
-            audioRef={audioRef}
-            hasTrack={hasTracks}
-            trackTitle={currentTrack?.title}
-            trackSrc={currentTrack?.src}
-          />
+          <div className="hidden min-w-0 sm:block">
+            <PlaybackTimeline
+              key={currentTrack?.id ?? "empty"}
+              audioRef={audioRef}
+              hasTrack={hasTracks}
+              trackTitle={currentTrack?.title}
+              trackSrc={currentTrack?.src}
+            />
+          </div>
 
           <div className="flex items-center justify-end">
             <button
@@ -209,7 +211,7 @@ export function MusicPlayer() {
               title={isMuted ? "Unmute" : "Mute"}
               disabled={!hasTracks}
               onClick={toggleMute}
-              className={iconButton}
+              className={`${iconButton} hidden sm:grid`}
             >
               {isMuted ? (
                 <VolumeX aria-hidden="true" className="size-5" />

@@ -30,11 +30,13 @@ export type CarouselHandle = {
 type ProjectsCarouselProps = {
   handleRef: RefObject<CarouselHandle | null>;
   reducedMotion: boolean;
+  compact?: boolean;
 };
 
 export function ProjectsCarousel({
   handleRef,
   reducedMotion,
+  compact = false,
 }: ProjectsCarouselProps) {
   // one 0..1 value drives the whole strip, fed by the pc sequence's own tick
   // loop below — same contract the turntable ring used to expose.
@@ -51,7 +53,11 @@ export function ProjectsCarousel({
   // card 1 grows in from the same spot the bloom just filled, then the strip
   // starts travelling — reads as "the pokemon arrives" rather than just
   // being there when the panel finishes fading in
-  const entranceScale = useTransform(progress, [0, ENTRANCE_FRACTION], [0.6, 1]);
+  const entranceScale = useTransform(
+    progress,
+    [0, ENTRANCE_FRACTION],
+    [0.6, 1],
+  );
   const entranceOpacity = useTransform(
     progress,
     [0, ENTRANCE_FRACTION],
@@ -103,6 +109,66 @@ export function ProjectsCarousel({
           </li>
         ))}
       </ul>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="absolute inset-x-0 top-[24%] bottom-[8%] flex flex-col justify-center">
+        <p className="mb-3 px-6 font-mono text-[0.62rem] tracking-[0.16em] text-black/55 uppercase">
+          Swipe projects
+        </p>
+        <div className="touch-pan-x snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto overscroll-x-contain px-6 pb-4 [&::-webkit-scrollbar]:hidden">
+          <motion.div
+            ref={trackRef}
+            className="flex w-max gap-4"
+            style={{
+              scale: entranceScale,
+              opacity: entranceOpacity,
+              pointerEvents: "none",
+            }}
+          >
+            {projects.map((project) => (
+              <a
+                key={project.slug}
+                href={project.link}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${project.title}. ${project.blurb}`}
+                className="w-[calc(100vw-3rem)] max-w-sm shrink-0 snap-center overflow-hidden rounded-xl border border-black/10 bg-white/55 shadow-xl backdrop-blur-sm"
+              >
+                <div className="relative aspect-[16/10] bg-[#0b0b13]">
+                  <Image
+                    src={project.thumbnail}
+                    alt=""
+                    fill
+                    sizes="calc(100vw - 3rem)"
+                    quality={75}
+                    className="object-contain"
+                  />
+                </div>
+                <div className="space-y-2 p-4 text-black">
+                  <h3 className="text-lg font-semibold">{project.title}</h3>
+                  <p className="text-sm leading-relaxed text-black/65">
+                    {project.blurb}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {project.stack.map((tech) => (
+                      <Badge
+                        key={tech}
+                        className="rounded-full capitalize"
+                        variant="secondary"
+                      >
+                        {tech}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </motion.div>
+        </div>
+      </div>
     );
   }
 

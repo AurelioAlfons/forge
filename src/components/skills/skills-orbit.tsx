@@ -6,12 +6,16 @@ type SkillsOrbitProps = {
    *  took — the new ring outlines are decoration the honeycomb never had,
    *  so they get the same gate rather than sitting empty on screen. */
   reducedMotion: boolean;
+  compact?: boolean;
 };
 
 // dumb on purpose. no gsap, no scroll listener, no state. the pc section's
 // tick loop drives it — position via inline transform written every tick,
 // opacity+scale via gsap, both keyed off the same skillProgress value.
-export function SkillsOrbit({ reducedMotion }: SkillsOrbitProps) {
+export function SkillsOrbit({
+  reducedMotion,
+  compact = false,
+}: SkillsOrbitProps) {
   return (
     <>
       {!reducedMotion && (
@@ -19,7 +23,7 @@ export function SkillsOrbit({ reducedMotion }: SkillsOrbitProps) {
           <div
             data-skills-title
             aria-hidden="true"
-            className="pointer-events-none absolute top-[clamp(7rem,12vh,9rem)] left-[clamp(3rem,6vw,7rem)] z-10 max-w-64"
+            className="pointer-events-none absolute top-[clamp(7rem,12vh,9rem)] left-[clamp(3rem,6vw,7rem)] z-10 max-w-64 max-sm:top-[6.5rem] max-sm:left-6"
             style={{ opacity: 0, transform: "translateX(-32px)" }}
           >
             <p className="text-step-5 font-semibold tracking-tight text-white">
@@ -37,32 +41,46 @@ export function SkillsOrbit({ reducedMotion }: SkillsOrbitProps) {
             {/* opacity starts at 0 inline, same as each icon's own gsap
               target below — otherwise the ring is sized (and visible) the
               moment resize() runs, regardless of scroll position */}
-            <div
-              data-skill-ring="1"
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border"
-              style={{
-                opacity: 0,
-                width: "calc(var(--skill-ring1-r, 0px) * 2)",
-                height: "calc(var(--skill-ring1-r, 0px) * 2)",
-                borderColor: "rgba(223, 168, 18, 0.35)",
-                boxShadow: "0 0 24px rgba(223, 168, 18, 0.25)",
-              }}
-            />
-            <div
-              data-skill-ring="2"
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border"
-              style={{
-                opacity: 0,
-                width: "calc(var(--skill-ring2-r, 0px) * 2)",
-                height: "calc(var(--skill-ring2-r, 0px) * 2)",
-                borderColor: "rgba(255, 122, 61, 0.3)",
-                boxShadow: "0 0 24px rgba(255, 122, 61, 0.2)",
-              }}
-            />
+            {!compact && (
+              <div
+                data-skill-ring="1"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                style={{
+                  opacity: 0,
+                  width: "calc(var(--skill-ring1-r, 0px) * 2)",
+                  height: "calc(var(--skill-ring1-r, 0px) * 2)",
+                  borderColor: "rgba(223, 168, 18, 0.35)",
+                  boxShadow: "0 0 24px rgba(223, 168, 18, 0.25)",
+                }}
+              />
+            )}
+            {!compact && (
+              <div
+                data-skill-ring="2"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                style={{
+                  opacity: 0,
+                  width: "calc(var(--skill-ring2-r, 0px) * 2)",
+                  height: "calc(var(--skill-ring2-r, 0px) * 2)",
+                  borderColor: "rgba(255, 122, 61, 0.3)",
+                  boxShadow: "0 0 24px rgba(255, 122, 61, 0.2)",
+                }}
+              />
+            )}
 
-            <ul className="pointer-events-none absolute inset-0 list-none">
+            <ul
+              className={
+                compact
+                  ? "pointer-events-none absolute inset-x-4 top-[15.5rem] grid list-none grid-cols-4 gap-x-2 gap-y-1.5"
+                  : "pointer-events-none absolute inset-0 list-none"
+              }
+            >
               {skills.map((skill) => (
-                <SkillOrbitIcon key={skill.id} skill={skill} />
+                <SkillOrbitIcon
+                  key={skill.id}
+                  skill={skill}
+                  compact={compact}
+                />
               ))}
             </ul>
           </div>

@@ -5,8 +5,9 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { experience } from "@/lib/experience/experience-data";
 import { PROJECTS_STAGE_COLOR } from "@/lib/projects/carousel-config";
-import { initFluid } from "@/lib/fluid/fluid";
+import { startFluidSafely } from "@/lib/fluid/safe-fluid";
 import { useMediaQuery } from "@/components/pc-sequence/use-media-query";
+import { usePerformanceProfile } from "@/components/responsive/use-performance-profile";
 import { DecorArrow } from "@/components/decor/decor-arrow";
 import { DecorMark } from "@/components/decor/decor-mark";
 import { ExperienceTimeline } from "./experience-timeline";
@@ -31,6 +32,7 @@ export function ExperienceSection() {
   const contentRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+  const profile = usePerformanceProfile();
 
   // The whole white page wipes upward over the black PC scene. Scrubbing
   // keeps the transition attached to scroll position and reversible.
@@ -124,6 +126,7 @@ export function ExperienceSection() {
     let pointerX = -1;
     let pointerY = -1;
     let teardown: ((releaseContext?: boolean) => void) | null = null;
+    let requestId = 0;
 
     function trackPointer(event: PointerEvent) {
       pointerX = event.clientX;
@@ -141,18 +144,19 @@ export function ExperienceSection() {
     }
 
     function syncMotionPreference() {
+      const currentRequest = ++requestId;
       teardown?.(false);
       teardown = null;
       window.removeEventListener("pointermove", trackPointer);
 
-      if (motionQuery.matches) {
+      if (motionQuery.matches || profile !== "desktop") {
         canvas!.hidden = true;
         return;
       }
 
-      canvas!.hidden = false;
+      canvas!.hidden = true;
       window.addEventListener("pointermove", trackPointer, { passive: true });
-      teardown = initFluid(canvas!, {
+      void startFluidSafely(canvas!, {
         palette: EXPERIENCE_FLUID_PALETTE,
         getPointerInfluence: pointerIsOverExperience,
         transparent: true,
@@ -167,6 +171,13 @@ export function ExperienceSection() {
           splatRadius: 0.25,
           splatForce: 6000,
         },
+      }).then((nextTeardown) => {
+        if (currentRequest !== requestId) {
+          nextTeardown?.(true);
+          return;
+        }
+        teardown = nextTeardown;
+        canvas!.hidden = !nextTeardown;
       });
     }
 
@@ -174,10 +185,11 @@ export function ExperienceSection() {
     motionQuery.addEventListener("change", syncMotionPreference);
     return () => {
       motionQuery.removeEventListener("change", syncMotionPreference);
+      requestId += 1;
       window.removeEventListener("pointermove", trackPointer);
       teardown?.(true);
     };
-  }, []);
+  }, [profile]);
 
   return (
     <section
@@ -201,7 +213,7 @@ export function ExperienceSection() {
           ref={canvasRef}
           data-experience-fluid
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-1/2 left-1/2 mx-[-50vw] w-screen"
+          className="pointer-events-none absolute inset-y-0 right-1/2 left-1/2 mx-[-50vw] w-screen max-sm:hidden"
           style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
         />
 

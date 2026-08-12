@@ -65,7 +65,7 @@ export function TimelineRuler({
         onPointerCancel={onPointerEnd}
         onLostPointerCapture={onPointerEnd}
         onKeyDown={onKeyDown}
-        className={`group relative h-[clamp(17.5rem,36svh,20rem)] w-11 touch-none outline-none select-none ${
+        className={`group relative h-56 w-9 touch-none outline-none select-none sm:h-[clamp(17.5rem,36svh,20rem)] sm:w-11 ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
@@ -78,13 +78,14 @@ export function TimelineRuler({
               <span
                 key={tick}
                 aria-hidden="true"
+                data-timeline-major={major ? "true" : undefined}
                 style={{ top: `${(tick / (TICK_COUNT - 1)) * 100}%` }}
-                className={`absolute left-1/2 h-px -translate-x-1/2 -translate-y-1/2 ${
+                className={`timeline-tick absolute left-1/2 -translate-x-1/2 -translate-y-1/2 ${
                   major
-                    ? "w-7 bg-[#c7cad1] group-focus-visible:bg-[#f5c542]"
+                    ? "size-1.5 rounded-full bg-[#c7cad1] group-focus-visible:bg-[#f5c542] sm:h-px sm:w-7 sm:rounded-none"
                     : middle
-                      ? "w-4 bg-[#63676f] group-focus-visible:bg-[#f5c542]/80"
-                      : "w-2.5 bg-[#4a4e56] group-focus-visible:bg-[#f5c542]/60"
+                      ? "h-px w-4 bg-[#63676f] group-focus-visible:bg-[#f5c542]/80"
+                      : "h-px w-2.5 bg-[#4a4e56] group-focus-visible:bg-[#f5c542]/60"
                 }`}
               />
             );
@@ -93,7 +94,7 @@ export function TimelineRuler({
           <div
             ref={markerRef}
             aria-hidden="true"
-            className="absolute top-0 left-1/2 z-10 h-0.5 w-7 -translate-x-1/2 -translate-y-1/2 bg-[#f5c542]"
+            className="absolute top-0 left-1/2 z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f5c542] shadow-[0_0_0.75rem_rgba(245,197,66,0.65)] sm:h-0.5 sm:w-7 sm:rounded-none sm:shadow-none"
           />
         </div>
       </div>
@@ -153,6 +154,12 @@ export function TimelineRuler({
 
         @media (hover: hover) and (pointer: fine) {
           .timeline-touch-toggle {
+            display: none;
+          }
+        }
+
+        @media (max-width: 639px) {
+          .timeline-tick:not([data-timeline-major="true"]) {
             display: none;
           }
         }

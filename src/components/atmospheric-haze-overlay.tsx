@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties } from "react";
-import { initFluid } from "@/lib/fluid/fluid";
+import { startFluidSafely } from "@/lib/fluid/safe-fluid";
+import { usePerformanceProfile } from "@/components/responsive/use-performance-profile";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const INTERACTIVE_SELECTOR =
@@ -10,6 +11,7 @@ const INTERACTIVE_SELECTOR =
 export function AtmosphericHazeOverlay() {
   const hazeRef = useRef<HTMLDivElement>(null);
   const fluidRef = useRef<HTMLCanvasElement>(null);
+  const profile = usePerformanceProfile();
 
   useEffect(() => {
     const canvas = fluidRef.current;
@@ -17,41 +19,53 @@ export function AtmosphericHazeOverlay() {
 
     const motionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
     let teardown: ((releaseContext?: boolean) => void) | null = null;
+    let requestId = 0;
 
     function sync() {
+      const currentRequest = ++requestId;
       teardown?.(false);
-      teardown = motionQuery.matches
-        ? null
-        : initFluid(canvas!, {
-            palette: [
-              { h: 0, s: 0, v: 0.75 },
-              { h: 0, s: 0, v: 0.75 },
-              { h: 0, s: 0, v: 0.48 },
-            ],
-            transparent: true,
-            initialSplats: 0,
-            idleSplats: false,
-            ignoreSelector: INTERACTIVE_SELECTOR,
-            tuning: {
-              simResolution: 128,
-              dyeResolution: 512,
-              densityDissipation: 1.35,
-              velocityDissipation: 0.32,
-              curl: 22,
-              splatRadius: 0.22,
-              splatForce: 4200,
-            },
-          });
-      canvas!.hidden = motionQuery.matches;
+      teardown = null;
+      const blocked = motionQuery.matches || profile !== "desktop";
+      canvas!.hidden = true;
+      if (blocked) return;
+
+      void startFluidSafely(canvas!, {
+        palette: [
+          { h: 0, s: 0, v: 0.75 },
+          { h: 0, s: 0, v: 0.75 },
+          { h: 0, s: 0, v: 0.48 },
+        ],
+        transparent: true,
+        initialSplats: 0,
+        idleSplats: false,
+        ignoreSelector: INTERACTIVE_SELECTOR,
+        tuning: {
+          simResolution: 128,
+          dyeResolution: 512,
+          densityDissipation: 1.35,
+          velocityDissipation: 0.32,
+          curl: 22,
+          splatRadius: 0.22,
+          splatForce: 4200,
+        },
+      }).then((nextTeardown) => {
+        if (currentRequest !== requestId) {
+          nextTeardown?.(true);
+          return;
+        }
+        teardown = nextTeardown;
+        canvas!.hidden = !nextTeardown;
+      });
     }
 
     sync();
     motionQuery.addEventListener("change", sync);
     return () => {
       motionQuery.removeEventListener("change", sync);
+      requestId += 1;
       teardown?.(true);
     };
-  }, []);
+  }, [profile]);
 
   useEffect(() => {
     const haze = hazeRef.current;
@@ -157,7 +171,7 @@ export function AtmosphericHazeOverlay() {
     function syncMotionPreference() {
       window.removeEventListener("pointermove", onPointerMove);
       haze!.style.opacity = "0";
-      if (!motionQuery.matches) {
+      if (!motionQuery.matches && profile === "desktop") {
         window.addEventListener("pointermove", onPointerMove, {
           passive: true,
         });
@@ -172,7 +186,7 @@ export function AtmosphericHazeOverlay() {
       cancelAnimationFrame(frameId);
       window.clearTimeout(fadeId);
     };
-  }, []);
+  }, [profile]);
 
   return (
     <>
@@ -180,14 +194,14 @@ export function AtmosphericHazeOverlay() {
         ref={fluidRef}
         data-fluid-smoke
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-5 h-full w-full"
+        className="pointer-events-none fixed inset-0 z-5 h-full w-full max-sm:hidden"
         style={{ filter: "blur(4px) brightness(1.38)", opacity: 0.2 }}
       />
       <div
         ref={hazeRef}
         data-atmospheric-haze
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-6 h-full w-full opacity-0 transition-opacity duration-700"
+        className="pointer-events-none fixed inset-0 z-6 h-full w-full opacity-0 transition-opacity duration-700 max-sm:hidden"
         style={
           {
             "--haze-x": "50vw",

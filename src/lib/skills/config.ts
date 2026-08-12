@@ -1,6 +1,5 @@
 import {
   PLAYBACK_FRAME_COUNT,
-  SCROLL_LENGTH_VH,
   ZOOM_LEG_START_STEP,
   ZOOM_PLAYBACK_FRAME_COUNT,
   zoomPlaybackFrameIndex,
@@ -41,7 +40,9 @@ export const HEX_TWEEN_DURATION = 0.08;
 export function getSkillsAnchorScrollY(pcSection: HTMLElement) {
   const holdMidpoint =
     (SPIN_FORWARD_PROGRESS.start + SPIN_FORWARD_PROGRESS.end) / 2;
-  return (
-    pcSection.offsetTop + window.innerHeight * SCROLL_LENGTH_VH * holdMidpoint
+  const pinnedDistance = Math.max(
+    0,
+    pcSection.scrollHeight - window.innerHeight,
   );
+  return pcSection.offsetTop + pinnedDistance * holdMidpoint;
 }

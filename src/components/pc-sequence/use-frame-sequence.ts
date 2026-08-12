@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { FRAME_COUNT, framePath } from "@/lib/pc-sequence/config";
+import {
+  PHONE_QUERY,
+  TABLET_QUERY,
+} from "@/lib/responsive/performance-profile";
 
 export type FrameSequence = {
   frames: HTMLImageElement[];
@@ -9,7 +13,7 @@ export type FrameSequence = {
   progress: number;
 };
 
-const BACKGROUND_WORKERS = 6;
+const DESKTOP_WORKERS = 6;
 
 /** Loads the opening frame first, then fills the sequence in the background. */
 export function useFrameSequence() {
@@ -24,6 +28,17 @@ export function useFrameSequence() {
     let loaded = 0;
     let nextIndex = 1;
     const frames: HTMLImageElement[] = [];
+    const phone = window.matchMedia(PHONE_QUERY).matches;
+    const tablet = window.matchMedia(TABLET_QUERY).matches;
+    // phones draw every second source frame and let the existing nearest-frame
+    // fallback fill the gaps. endpoints stay exact, while image decode + memory
+    // land at roughly half the desktop cost.
+    const loadIndices = Array.from(
+      { length: FRAME_COUNT },
+      (_, index) => index,
+    ).filter((index) => !phone || index % 2 === 0 || index === FRAME_COUNT - 1);
+    const targetCount = loadIndices.length;
+    const backgroundWorkers = phone ? 3 : tablet ? 4 : DESKTOP_WORKERS;
 
     function loadFrame(index: number) {
       return new Promise<HTMLImageElement>((resolve) => {
@@ -48,10 +63,10 @@ export function useFrameSequence() {
     function reportLoaded() {
       loaded += 1;
       // update in small batches so background loading does not cause 160 renders
-      if (loaded === 1 || loaded === FRAME_COUNT || loaded % 4 === 0) {
+      if (loaded === 1 || loaded === targetCount || loaded % 4 === 0) {
         setState((current) => ({
           ...current,
-          progress: loaded / FRAME_COUNT,
+          progress: loaded / targetCount,
         }));
       }
     }
@@ -63,12 +78,12 @@ export function useFrameSequence() {
 
       reportLoaded();
       if (openingFrame.naturalWidth) {
-        setState({ frames, ready: true, progress: loaded / FRAME_COUNT });
+        setState({ frames, ready: true, progress: loaded / targetCount });
       }
 
       async function worker() {
-        while (!cancelled && nextIndex < FRAME_COUNT) {
-          const i = nextIndex;
+        while (!cancelled && nextIndex < targetCount) {
+          const i = loadIndices[nextIndex];
           nextIndex += 1;
 
           await loadFrame(i);
@@ -77,7 +92,7 @@ export function useFrameSequence() {
       }
 
       await Promise.all(
-        Array.from({ length: BACKGROUND_WORKERS }, () => worker()),
+        Array.from({ length: backgroundWorkers }, () => worker()),
       );
       if (!cancelled) {
         setState((current) => ({ ...current, progress: 1 }));

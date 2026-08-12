@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
-import { initFluid } from "@/lib/fluid/fluid";
+import { startFluidSafely } from "@/lib/fluid/safe-fluid";
 import {
   PROJECTS_STAGE_COLOR,
   carouselScale,
 } from "@/lib/projects/carousel-config";
 import { useMediaQuery } from "@/components/pc-sequence/use-media-query";
+import { usePerformanceProfile } from "@/components/responsive/use-performance-profile";
 import { HeroShutterText } from "@/components/ui/hero-shutter-text";
 import { ProjectsCarousel, type CarouselHandle } from "./projects-carousel";
 
@@ -41,6 +42,7 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+  const profile = usePerformanceProfile();
 
   // the carousel's own cards are sized in real px regardless of viewport, so
   // this scale factor is what actually shrinks them to fit a phone
@@ -70,6 +72,7 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
     let pointerX = -1;
     let pointerY = -1;
     let teardown: ((releaseContext?: boolean) => void) | null = null;
+    let requestId = 0;
 
     function trackPointer(event: PointerEvent) {
       pointerX = event.clientX;
@@ -87,32 +90,40 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
     }
 
     function syncMotionPreference() {
+      const currentRequest = ++requestId;
       teardown?.(false);
       teardown = null;
       window.removeEventListener("pointermove", trackPointer);
 
-      if (motionQuery.matches) {
+      if (motionQuery.matches || profile === "phone") {
         canvas!.hidden = true;
         return;
       }
 
-      canvas!.hidden = false;
+      canvas!.hidden = true;
       window.addEventListener("pointermove", trackPointer, { passive: true });
-      teardown = initFluid(canvas!, {
+      void startFluidSafely(canvas!, {
         palette: PROJECTS_FLUID_PALETTE,
         getPointerInfluence: pointerIsOverProjects,
         transparent: true,
         initialSplats: 0,
         idleSplats: false,
         tuning: {
-          simResolution: 128,
-          dyeResolution: 1024,
+          simResolution: profile === "tablet" ? 64 : 128,
+          dyeResolution: profile === "tablet" ? 512 : 1024,
           densityDissipation: 1,
           velocityDissipation: 0.2,
           curl: 30,
           splatRadius: 0.25,
           splatForce: 6000,
         },
+      }).then((nextTeardown) => {
+        if (currentRequest !== requestId) {
+          nextTeardown?.(true);
+          return;
+        }
+        teardown = nextTeardown;
+        canvas!.hidden = !nextTeardown;
       });
     }
 
@@ -120,10 +131,11 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
     motionQuery.addEventListener("change", syncMotionPreference);
     return () => {
       motionQuery.removeEventListener("change", syncMotionPreference);
+      requestId += 1;
       window.removeEventListener("pointermove", trackPointer);
       teardown?.(true);
     };
-  }, []);
+  }, [profile]);
 
   return (
     <>
@@ -151,13 +163,13 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
           ref={canvasRef}
           data-projects-fluid
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full"
+          className="pointer-events-none absolute inset-0 h-full w-full max-sm:hidden"
           style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
         />
-        <div className="pointer-events-none absolute inset-x-0 top-[12%] flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[12%] flex justify-center max-sm:top-[14%]">
           <h2
             aria-label="My Projects"
-            className="text-step-5 translate-x-[-8vw] font-semibold tracking-tight text-black"
+            className="text-step-5 translate-x-[-8vw] font-semibold tracking-tight text-black max-sm:translate-x-0 max-sm:text-[clamp(2.4rem,12vw,3.5rem)]"
           >
             <HeroShutterText text="MY PROJECTS" tone="on-light" />
           </h2>
@@ -169,6 +181,7 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
           <ProjectsCarousel
             handleRef={carouselRef}
             reducedMotion={reducedMotion}
+            compact={profile === "phone"}
           />
         </div>
       </section>
