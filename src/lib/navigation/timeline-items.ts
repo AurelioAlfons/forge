@@ -1,10 +1,8 @@
 export type TimelineItem = {
   id: "home" | "projects" | "skills" | "experience" | "contact";
   label: string;
-  // placeholder fraction of total document scroll. "projects", "skills",
-  // "experience" and "contact" all get resolved to a real position at
-  // runtime (see page-timeline.tsx) — this number is only ever seen before
-  // that first resolve runs. "home" is the only one that stays exactly 0.
+  // the authored slot on the visible ruler. real page positions stay uneven;
+  // page-timeline remaps each live chapter gap into one equal slot at runtime.
   progress: number;
 };
 

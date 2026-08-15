@@ -47,14 +47,63 @@ function resolvedProgress(item: TimelineItem, dynamic: DynamicProgress) {
   return item.progress;
 }
 
-// nearest by nudged position, not by index. index-rounding assumed the five
-// stops sit at even fractions, which skills no longer does once resolved.
-function nearestItem(progress: number, dynamic: DynamicProgress): TimelineItem {
+// every real chapter interval gets one equal slice of the visible ruler. long
+// chapters run faster, short ones slow down, and every big bar still lands true.
+function timelineProgressFromPage(
+  pageProgress: number,
+  dynamic: DynamicProgress,
+) {
+  const progress = clamp(pageProgress);
+
+  for (let index = 1; index < timelineItems.length; index += 1) {
+    const previous = timelineItems[index - 1];
+    const next = timelineItems[index];
+    const pageStart = resolvedProgress(previous, dynamic);
+    const pageEnd = resolvedProgress(next, dynamic);
+
+    if (progress > pageEnd && index < timelineItems.length - 1) continue;
+    if (pageEnd <= pageStart) return next.progress;
+
+    const localProgress = clamp((progress - pageStart) / (pageEnd - pageStart));
+    return (
+      previous.progress + (next.progress - previous.progress) * localProgress
+    );
+  }
+
+  return 1;
+}
+
+// dragging uses the same road backwards, so an equal-looking ruler still
+// scrolls to the real uneven chapter positions underneath it.
+function pageProgressFromTimeline(
+  timelineProgress: number,
+  dynamic: DynamicProgress,
+) {
+  const progress = clamp(timelineProgress);
+
+  for (let index = 1; index < timelineItems.length; index += 1) {
+    const previous = timelineItems[index - 1];
+    const next = timelineItems[index];
+
+    if (progress > next.progress && index < timelineItems.length - 1) continue;
+
+    const localProgress = clamp(
+      (progress - previous.progress) / (next.progress - previous.progress),
+    );
+    const pageStart = resolvedProgress(previous, dynamic);
+    const pageEnd = resolvedProgress(next, dynamic);
+    return pageStart + (pageEnd - pageStart) * localProgress;
+  }
+
+  return dynamic.contact;
+}
+
+function nearestItem(progress: number): TimelineItem {
   let closest: TimelineItem = timelineItems[0];
   let closestDistance = Infinity;
 
   for (const item of timelineItems) {
-    const distance = Math.abs(progress - resolvedProgress(item, dynamic));
+    const distance = Math.abs(progress - item.progress);
     if (distance < closestDistance) {
       closestDistance = distance;
       closest = item;
@@ -154,22 +203,28 @@ export function PageTimeline() {
     }
   }, []);
 
-  const applyProgress = useCallback((nextProgress: number) => {
-    const progress = clamp(nextProgress);
-    progressRef.current = progress;
-
-    if (markerRef.current) markerRef.current.style.top = `${progress * 100}%`;
-    sliderRef.current?.setAttribute(
-      "aria-valuenow",
-      String(Math.round(progress * 100)),
-    );
-
-    const nextItem = nearestItem(progress, {
+  const applyPageProgress = useCallback((nextPageProgress: number) => {
+    const dynamic = {
       projects: projectsProgressRef.current,
       skills: skillsProgressRef.current,
       experience: experienceProgressRef.current,
       contact: contactProgressRef.current,
-    });
+    };
+    const timelineProgress = timelineProgressFromPage(
+      nextPageProgress,
+      dynamic,
+    );
+    progressRef.current = timelineProgress;
+
+    if (markerRef.current) {
+      markerRef.current.style.top = `${timelineProgress * 100}%`;
+    }
+    sliderRef.current?.setAttribute(
+      "aria-valuenow",
+      String(Math.round(timelineProgress * 100)),
+    );
+
+    const nextItem = nearestItem(timelineProgress);
     if (nextItem.id === activeIdRef.current) return;
     activeIdRef.current = nextItem.id;
     setActiveId(nextItem.id);
@@ -177,38 +232,34 @@ export function PageTimeline() {
 
   const syncFromPage = useCallback(() => {
     const maxScroll = maxScrollRef.current;
-    applyProgress(maxScroll > 0 ? window.scrollY / maxScroll : 0);
-  }, [applyProgress]);
+    applyPageProgress(maxScroll > 0 ? window.scrollY / maxScroll : 0);
+  }, [applyPageProgress]);
 
   const scrollToProgress = useCallback(
     (nextProgress: number, behavior: ScrollBehavior = "auto") => {
       measure();
-      const progress = clamp(nextProgress);
-      applyProgress(progress);
+      const timelineProgress = clamp(nextProgress);
+      const pageProgress = pageProgressFromTimeline(timelineProgress, {
+        projects: projectsProgressRef.current,
+        skills: skillsProgressRef.current,
+        experience: experienceProgressRef.current,
+        contact: contactProgressRef.current,
+      });
+      applyPageProgress(pageProgress);
       window.scrollTo({
-        top: progress * maxScrollRef.current,
+        top: pageProgress * maxScrollRef.current,
         behavior,
       });
     },
-    [applyProgress, measure],
+    [applyPageProgress, measure],
   );
 
-  // measures first so a resized/rescrolled page resolves "skills" against
-  // where it actually sits right now, not a stale reading from last measure
+  // the item owns the ruler slot; the inverse mapper finds its live page spot
   const scrollToItem = useCallback(
     (item: TimelineItem, behavior: ScrollBehavior = "auto") => {
-      measure();
-      scrollToProgress(
-        resolvedProgress(item, {
-          projects: projectsProgressRef.current,
-          skills: skillsProgressRef.current,
-          experience: experienceProgressRef.current,
-          contact: contactProgressRef.current,
-        }),
-        behavior,
-      );
+      scrollToProgress(item.progress, behavior);
     },
-    [measure, scrollToProgress],
+    [scrollToProgress],
   );
 
   const progressFromPointer = useCallback(
