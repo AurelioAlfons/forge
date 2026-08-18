@@ -1,0 +1,49 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="32"
+  height="32"
+  viewBox="0 0 32 32"
+  shape-rendering="crispEdges"
+>
+  <title>Forge pixel fan</title>
+
+  <path fill="#07070A" d="M4 0h24v2h2v2h2v24h-2v2h-2v2H4v-2H2v-2H0V4h2V2h2z" />
+  <path fill="#1B1D22" d="M6 2h20v2h4v4h2v16h-2v4h-4v2H6v-2H2v-4H0V8h2V4h4z" />
+
+  <rect width="4" height="4" x="4" y="4" fill="#4A4E56" />
+  <rect width="4" height="4" x="24" y="4" fill="#4A4E56" />
+  <rect width="4" height="4" x="4" y="24" fill="#4A4E56" />
+  <rect width="4" height="4" x="24" y="24" fill="#4A4E56" />
+  <rect width="2" height="2" x="5" y="5" fill="#F5C542" />
+  <rect width="2" height="2" x="25" y="5" fill="#F5C542" />
+  <rect width="2" height="2" x="5" y="25" fill="#F5C542" />
+  <rect width="2" height="2" x="25" y="25" fill="#F5C542" />
+
+  <rect width="12" height="2" x="10" y="4" fill="#DFA812" />
+  <rect width="20" height="4" x="6" y="6" fill="#DFA812" />
+  <rect width="24" height="12" x="4" y="10" fill="#DFA812" />
+  <rect width="20" height="4" x="6" y="22" fill="#DFA812" />
+  <rect width="12" height="2" x="10" y="26" fill="#DFA812" />
+  <rect width="12" height="2" x="10" y="4" fill="#F5C542" />
+  <rect width="4" height="16" x="4" y="10" fill="#F5C542" />
+
+  <rect width="8" height="2" x="12" y="8" fill="#07070A" />
+  <rect width="16" height="4" x="8" y="10" fill="#07070A" />
+  <rect width="20" height="4" x="6" y="14" fill="#07070A" />
+  <rect width="16" height="4" x="8" y="18" fill="#07070A" />
+  <rect width="8" height="2" x="12" y="22" fill="#07070A" />
+
+  <rect width="4" height="6" x="16" y="8" fill="#F5C542" />
+  <rect width="4" height="4" x="20" y="10" fill="#DFA812" />
+  <rect width="6" height="4" x="18" y="16" fill="#F5C542" />
+  <rect width="4" height="4" x="20" y="20" fill="#DFA812" />
+  <rect width="4" height="6" x="12" y="18" fill="#F5C542" />
+  <rect width="4" height="4" x="8" y="20" fill="#DFA812" />
+  <rect width="6" height="4" x="8" y="12" fill="#F5C542" />
+  <rect width="4" height="4" x="8" y="8" fill="#DFA812" />
+
+  <rect width="8" height="8" x="12" y="12" fill="#4A4E56" />
+  <rect width="6" height="6" x="13" y="13" fill="#07070A" />
+  <rect width="4" height="4" x="14" y="14" fill="#F5C542" />
+  <rect width="2" height="2" x="15" y="15" fill="#FFF5C2" />
+</svg>

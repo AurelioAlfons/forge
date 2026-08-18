@@ -213,7 +213,7 @@ export function ExperienceSection() {
           ref={canvasRef}
           data-experience-fluid
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-1/2 left-1/2 mx-[-50vw] w-screen max-sm:hidden"
+          className="pointer-events-none absolute inset-y-0 right-1/2 left-1/2 h-full w-screen max-sm:hidden"
           style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
         />
 

@@ -116,7 +116,13 @@ export function AtmosphericHazeOverlay() {
         "[data-projects-interlude]",
       );
       const projectsRect = projectsPanel?.getBoundingClientRect();
+      // the projects layer fills the screen even while invisible, so only let
+      // it steal the haze once that white page has actually faded in
+      const projectsVisible =
+        projectsPanel &&
+        Number.parseFloat(getComputedStyle(projectsPanel).opacity) > 0.01;
       const overProjects =
+        projectsVisible &&
         projectsRect &&
         event.clientX >= projectsRect.left &&
         event.clientX <= projectsRect.right &&
