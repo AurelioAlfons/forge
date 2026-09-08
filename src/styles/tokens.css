@@ -7,6 +7,8 @@
   collapses on a small phone.
 */
 @theme {
+  /* one gold for the quiet forge os labels and controls. */
+  --color-system-gold: #e7b83f;
   /* Type scale — ~1.25 ratio on mobile, ~1.33 on desktop */
   --text-step--1: clamp(0.75rem, 0.7143rem + 0.1786vw, 0.875rem); /* 12 → 14 */
   --text-step-0: clamp(1rem, 0.9643rem + 0.1786vw, 1.125rem); /*  16 → 18 */

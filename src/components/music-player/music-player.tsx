@@ -10,7 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { useIntro } from "@/components/intro/use-intro";
+import type { Track } from "@/lib/music/types";
 import { tracks } from "@/lib/music/tracks";
 import { NowPlaying } from "./now-playing";
 import { PlaybackTimeline } from "./playback-timeline";
@@ -25,7 +25,6 @@ export function MusicPlayer() {
   const panelRef = useRef<HTMLDivElement>(null);
   const playlistButtonRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const resumeAfterLoadRef = useRef(false);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -36,37 +35,29 @@ export function MusicPlayer() {
   const hasTracks = tracks.length > 0;
   const currentTrack = hasTracks ? tracks[currentIndex] : undefined;
 
-  // no clicking play through the intro, and nothing tabbable behind the loader
-  const { phase } = useIntro();
-  const introRunning = phase !== "ready";
+  // the player is ready with the shell and yields while reading lower chapters.
+  const hiddenByScroll = useHideOnScrollDown(!panelOpen);
 
-  // gets out of the way going down, comes back coming up. only after the intro,
-  // since its reveal tween owns this element's transform until then.
-  const hiddenByScroll = useHideOnScrollDown(!introRunning && !panelOpen);
+  const playSafely = useCallback(
+    async (track: Track | undefined = currentTrack) => {
+      const audio = audioRef.current;
+      if (!audio || !track) return;
+      // only a play or track-selection gesture gives the audio element a source.
+      if (audio.getAttribute("src") !== track.src) {
+        audio.src = track.src;
+        audio.load();
+      }
 
-  const playSafely = useCallback(async () => {
-    const audio = audioRef.current;
-    if (!audio || !hasTracks) return;
-
-    try {
-      await audio.play();
-      setMediaError(null);
-    } catch {
-      setIsPlaying(false);
-      setMediaError("Playback could not start. Try pressing play again.");
-    }
-  }, [hasTracks]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentTrack) return;
-
-    audio.load();
-    if (resumeAfterLoadRef.current) {
-      resumeAfterLoadRef.current = false;
-      void playSafely();
-    }
-  }, [currentTrack, playSafely]);
+      try {
+        await audio.play();
+        setMediaError(null);
+      } catch {
+        setIsPlaying(false);
+        setMediaError("Playback could not start. Try pressing play again.");
+      }
+    },
+    [currentTrack],
+  );
 
   useEffect(() => {
     if (!panelOpen) return;
@@ -101,10 +92,18 @@ export function MusicPlayer() {
 
     if (index === currentIndex) {
       if (forcePlay) void playSafely();
+      else if (audio && currentTrack && !audio.getAttribute("src")) {
+        audio.src = currentTrack.src;
+        audio.load();
+      }
       return;
     }
 
-    resumeAfterLoadRef.current = shouldContinue;
+    if (audio) {
+      audio.src = tracks[index].src;
+      audio.load();
+      if (shouldContinue) void playSafely(tracks[index]);
+    }
     setCurrentIndex(index);
     setMediaError(null);
   }
@@ -133,11 +132,11 @@ export function MusicPlayer() {
     <div
       ref={rootRef}
       data-music-player
-      inert={introRunning || hiddenByScroll}
-      className={`fixed inset-x-2 top-[max(env(safe-area-inset-top),0.75rem)] z-50 mx-auto max-w-312 transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none sm:inset-x-4 sm:top-[max(env(safe-area-inset-top),1.8rem)] ${introRunning || hiddenByScroll ? "pointer-events-none" : ""} ${hiddenByScroll ? "-translate-y-[calc(100%+3rem)] opacity-0" : "translate-y-0 opacity-100"}`}
+      inert={hiddenByScroll}
+      className={`fixed inset-x-2 top-[max(env(safe-area-inset-top),0.75rem)] z-50 mx-auto max-w-312 transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none sm:inset-x-4 sm:top-[max(env(safe-area-inset-top),1.8rem)] ${hiddenByScroll ? "pointer-events-none" : ""} ${hiddenByScroll ? "-translate-y-[calc(100%+3rem)] opacity-0" : "translate-y-0 opacity-100"}`}
     >
-      <div className="border-border/80 px-2x\ sm:px-xs rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
-        <div className="relative z-10 grid min-h-14 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">
+      <div className="border-border/80 sm:px-xs min-w-0 rounded-sm border bg-black/75 shadow-xl backdrop-blur-lg">
+        <div className="relative z-10 grid min-h-14 min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-0 sm:min-h-16 sm:grid-cols-[3rem_minmax(12rem,14rem)_minmax(10rem,1fr)_12rem]">
           <button
             ref={playlistButtonRef}
             type="button"
@@ -244,8 +243,7 @@ export function MusicPlayer() {
 
       <audio
         ref={audioRef}
-        src={currentTrack?.src}
-        preload="metadata"
+        preload="none"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => moveTrack(1, true)}

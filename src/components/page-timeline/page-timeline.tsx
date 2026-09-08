@@ -12,6 +12,7 @@ import {
 } from "react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useIntro } from "@/components/intro/use-intro";
+import { usePerformanceSettings } from "@/components/responsive/use-performance-profile";
 import { getSkillsAnchorScrollY } from "@/lib/skills/config";
 import { getProjectsAnchorScrollY } from "@/lib/projects/config";
 import { getSectionAnchorScrollY } from "@/lib/navigation/anchors";
@@ -145,9 +146,9 @@ export function PageTimeline() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  // dead to input until the reveal is done, same as the player
+  // poster readiness lets deep links settle once the enhanced layout is known.
   const { phase } = useIntro();
-  const introRunning = phase !== "ready";
+  const { staticContent } = usePerformanceSettings();
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current === null) return;
@@ -176,7 +177,16 @@ export function PageTimeline() {
     trackRectRef.current = trackRef.current?.getBoundingClientRect() ?? null;
 
     const pcSection = document.getElementById("pc-sequence");
-    if (pcSection && maxScrollRef.current > 0) {
+    const nativeProjects = document.getElementById("projects");
+    const nativeSkills = document.getElementById("skills");
+    if (nativeProjects && nativeSkills && maxScrollRef.current > 0) {
+      projectsProgressRef.current = clamp(
+        getSectionAnchorScrollY(nativeProjects) / maxScrollRef.current,
+      );
+      skillsProgressRef.current = clamp(
+        getSectionAnchorScrollY(nativeSkills) / maxScrollRef.current,
+      );
+    } else if (pcSection && maxScrollRef.current > 0) {
       projectsProgressRef.current = clamp(
         getProjectsAnchorScrollY(pcSection) / maxScrollRef.current,
       );
@@ -309,15 +319,16 @@ export function PageTimeline() {
     window.addEventListener("scroll", scheduleSync, { passive: true });
     window.addEventListener("resize", refreshMeasurements);
     window.addEventListener("orientationchange", refreshMeasurements);
+    // hero actions share the same destinations as the ruler links.
+    window.addEventListener("hashchange", restoreSupportedHash);
     motionQuery.addEventListener("change", updateMotionPreference);
     ScrollTrigger.addEventListener("refresh", refreshMeasurements);
 
     const resizeObserver = new ResizeObserver(refreshMeasurements);
     resizeObserver.observe(document.documentElement);
 
-    // Wait for the intro lock to release before restoring a deep link. During
-    // boot the temporary locked layout can report a false section offset.
-    if (phase === "ready") {
+    // restore a direct link after the poster and responsive layout settle.
+    {
       settleRaf = requestAnimationFrame(() => {
         finalSettleRaf = requestAnimationFrame(restoreSupportedHash);
       });
@@ -327,6 +338,7 @@ export function PageTimeline() {
       window.removeEventListener("scroll", scheduleSync);
       window.removeEventListener("resize", refreshMeasurements);
       window.removeEventListener("orientationchange", refreshMeasurements);
+      window.removeEventListener("hashchange", restoreSupportedHash);
       motionQuery.removeEventListener("change", updateMotionPreference);
       ScrollTrigger.removeEventListener("refresh", refreshMeasurements);
       resizeObserver.disconnect();
@@ -334,7 +346,7 @@ export function PageTimeline() {
       cancelAnimationFrame(settleRaf);
       cancelAnimationFrame(finalSettleRaf);
     };
-  }, [measure, phase, scrollToItem, syncFromPage]);
+  }, [measure, phase, staticContent, scrollToItem, syncFromPage]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -479,8 +491,7 @@ export function PageTimeline() {
       onBlurCapture={handleBlur}
       onKeyDownCapture={handleRootKeyDown}
       data-page-timeline
-      inert={introRunning}
-      className={`fixed top-1/2 left-[max(env(safe-area-inset-left),0.5rem)] z-40 -translate-y-1/2 ${introRunning ? "pointer-events-none" : ""}`}
+      className="fixed top-1/2 left-[max(env(safe-area-inset-left),0.5rem)] z-40 -translate-y-1/2"
     >
       <TimelineRuler
         sliderRef={sliderRef}

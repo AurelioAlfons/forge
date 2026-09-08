@@ -26,8 +26,9 @@ export function SkillsOrbit({
             className="pointer-events-none absolute top-[clamp(7rem,12vh,9rem)] left-[clamp(3rem,6vw,7rem)] z-10 max-w-64 max-sm:top-[6.5rem] max-sm:left-6"
             style={{ opacity: 0, transform: "translateX(-32px)" }}
           >
-            <p className="text-step-5 font-semibold tracking-tight text-white">
-              SKILLS
+            <p className="system-label mb-2">03 / Skills</p>
+            <p className="text-[clamp(2rem,4vw,3rem)] font-semibold tracking-tight text-white">
+              LOADOUT
             </p>
             <p className="text-step--1 mt-5 max-w-52 border-l border-[#dfa812]/70 pl-4 font-mono leading-relaxed tracking-widest text-white/55 uppercase">
               The tools behind the build
@@ -90,7 +91,7 @@ export function SkillsOrbit({
       {/* the orbit is decorative and scroll-gated, so this list is the real
           one. a screen reader gets it straight away, no scrolling needed. */}
       <section aria-labelledby="skills-heading" className="sr-only">
-        <h2 id="skills-heading">Skills</h2>
+        <h2 id="skills-heading">Loadout — Skills</h2>
         <ul>
           {skills.map((skill) => (
             <li key={skill.id}>{skill.name}</li>

@@ -21,7 +21,7 @@ SETS = ("Vid_80_Final", "Vid_B")
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=Path("public/pc-sequence"))
+    parser.add_argument("--source", type=Path, default=Path("assets/pc-sequence-source"))
     parser.add_argument("--output", type=Path, default=Path("public/pc-sequence"))
     # 88 looked fine on a sample but the fan close-ups dropped under 44 dB, so
     # the default sits where every frame actually clears the floor

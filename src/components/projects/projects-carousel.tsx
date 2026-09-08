@@ -116,7 +116,7 @@ export function ProjectsCarousel({
     return (
       <div className="absolute inset-x-0 top-[24%] bottom-[8%] flex flex-col justify-center">
         <p className="mb-3 px-6 font-mono text-[0.62rem] tracking-[0.16em] text-black/55 uppercase">
-          Swipe projects
+          Swipe missions
         </p>
         <div className="touch-pan-x snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto overscroll-x-contain px-6 pb-4 [&::-webkit-scrollbar]:hidden">
           <motion.div

@@ -4,13 +4,16 @@
  */
 export const site = {
   name: "Aurelio Hevi Alfons",
-  role: "Emerging Software Developer",
-  description:
-    "Emerging software developer who enjoys building cool projects and exploring AI, LLMs, and automation. Always learning, experimenting.",
+  displayName: "Aurelio Alfons",
+  systemName: "Forge OS",
+  role: "Software Developer",
+  description: "I build web experiences, AI tools, and automation.",
   url: "https://forge.vercel.app",
   nav: [
-    { href: "/#work", label: "Work" },
-    { href: "/#about", label: "About" },
+    { href: "/#home", label: "Home" },
+    { href: "/#projects", label: "Missions" },
+    { href: "/#skills", label: "Loadout" },
+    { href: "/#experience", label: "Log" },
     { href: "/#contact", label: "Contact" },
   ],
   social: {

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   MAX_DPR,
   PLAYBACK_FRAME_COUNT,
-  REVEAL,
   SCROLL_LENGTH_VH,
   SCRUB,
   playbackFrameIndex,
@@ -26,7 +25,7 @@ import {
   type OrbitGeometry,
 } from "@/lib/skills/orbit";
 import { SKILL_COUNT, skills } from "@/lib/skills/skills-data";
-import { useIntro, useIntroHoldProgress } from "@/components/intro/use-intro";
+import { useIntro } from "@/components/intro/use-intro";
 import { SkillsOrbit } from "@/components/skills/skills-orbit";
 import { ScrollStory } from "@/components/typography/scroll-story";
 import { storyBeats } from "@/lib/typography/story-data";
@@ -40,11 +39,12 @@ import {
 } from "@/lib/projects/config";
 import type { CarouselHandle } from "@/components/projects/projects-carousel";
 import { DecorReadout } from "@/components/decor/decor-readout";
-import { usePerformanceProfile } from "@/components/responsive/use-performance-profile";
+import { usePerformanceSettings } from "@/components/responsive/use-performance-profile";
 import { scrollLengthForProfile } from "@/lib/responsive/performance-profile";
 import { useFrameSequence } from "./use-frame-sequence";
 import { ProfileOverlay } from "./profile-overlay";
-import { BootLoader } from "./boot-loader";
+import { PcPoster } from "./pc-poster";
+import { StaticChapters } from "./static-chapters";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -64,108 +64,28 @@ export function PcSequenceSection() {
   const progressRef = useRef(0);
   const carouselRef = useRef<CarouselHandle | null>(null);
   const drawnIndexRef = useRef(-1);
+  const posterRef = useRef<HTMLImageElement>(null);
 
-  const { phase, reducedMotion, markFirstFrameReady, markRevealComplete } =
-    useIntro();
-  const holdProgress = useIntroHoldProgress();
-  const { frames, ready } = useFrameSequence();
-  const performanceProfile = usePerformanceProfile();
+  const { markEnhanced } = useIntro();
+  const settings = usePerformanceSettings();
+  const {
+    staticContent,
+    reducedMotion,
+    orbitMotion,
+    profile: performanceProfile,
+  } = settings;
+  const loader = useFrameSequence(posterRef);
   const scrollLengthVh = scrollLengthForProfile(
     SCROLL_LENGTH_VH,
     performanceProfile,
   );
 
-  // frame 01 is drawable => the fan has done its job, let the reveal start
-  useEffect(() => {
-    if (ready) markFirstFrameReady();
-  }, [markFirstFrameReady, ready]);
-
-  // ===== INTRO REVEAL =====
-  // deliberately knows nothing about frame loading. if the cap fired because a
-  // download stalled, the reveal still has to play — that cap is the whole
-  // reason nobody gets stuck on a black screen.
-  useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    const stage = stageRef.current;
-    if (!canvas || !stage || phase !== "revealing" || reducedMotion) return;
-
-    const profileIntro = stage.querySelector<HTMLElement>(
-      "[data-profile-intro]",
-    );
-    const socialLinks = stage.querySelector<HTMLElement>("[data-social-links]");
-    // the player and the timeline are siblings of this section, not children
-    const musicPlayer = document.querySelector<HTMLElement>(
-      "[data-music-player]",
-    );
-    const pageTimeline = document.querySelector<HTMLElement>(
-      "[data-page-timeline]",
-    );
-
-    // everything shows up together, staggered, while frames keep streaming in
-    const timeline = gsap.timeline({
-      defaults: { ease: "power3.out" },
-      onComplete: markRevealComplete,
-    });
-
-    timeline.fromTo(
-      canvas,
-      { opacity: 0, scale: 0.965 },
-      { opacity: 1, scale: 1, duration: REVEAL.canvas.duration },
-      REVEAL.canvas.at,
-    );
-
-    if (musicPlayer) {
-      timeline.fromTo(
-        musicPlayer,
-        { yPercent: -130, autoAlpha: 0 },
-        { yPercent: 0, autoAlpha: 1, duration: REVEAL.musicPlayer.duration },
-        REVEAL.musicPlayer.at,
-      );
-    }
-    if (profileIntro) {
-      timeline.fromTo(
-        profileIntro,
-        { y: -48, autoAlpha: 0 },
-        { y: 0, autoAlpha: 1, duration: REVEAL.profileIntro.duration },
-        REVEAL.profileIntro.at,
-      );
-    }
-    if (socialLinks) {
-      timeline.fromTo(
-        socialLinks,
-        { x: 140, autoAlpha: 0 },
-        { x: 0, autoAlpha: 1, duration: REVEAL.socialLinks.duration },
-        REVEAL.socialLinks.at,
-      );
-    }
-    if (pageTimeline) {
-      timeline.fromTo(
-        pageTimeline,
-        { x: -24, autoAlpha: 0 },
-        { x: 0, autoAlpha: 1, duration: REVEAL.pageTimeline.duration },
-        REVEAL.pageTimeline.at,
-      );
-    }
-
-    return () => {
-      timeline.kill();
-      for (const el of [
-        canvas,
-        musicPlayer,
-        profileIntro,
-        socialLinks,
-        pageTimeline,
-      ]) {
-        if (el) gsap.set(el, { clearProps: "transform,opacity,visibility" });
-      }
-    };
-  }, [markRevealComplete, phase, reducedMotion]);
-
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     const section = sectionRef.current;
-    if (!canvas || !stage || !section || phase === "booting") {
+    const poster = posterRef.current;
+    if (!canvas || !stage || !section || staticContent) {
       return;
     }
 
@@ -179,7 +99,6 @@ export function PcSequenceSection() {
     const projectsBloom = stage.querySelector<HTMLElement>(
       "[data-projects-bloom]",
     );
-    // sibling of this section, same as the boot reveal's own lookup above
     const pageTimelineNav = document.querySelector<HTMLElement>(
       "[data-page-timeline]",
     );
@@ -474,48 +393,31 @@ export function PcSequenceSection() {
     // ===== DRAW =====
     // contain-fit and centred, same scale as before the background cleanup
     function draw(index: number) {
-      let drawableIndex = index;
-      let img = frames[drawableIndex];
-
-      // Fast scrolling can outrun the background preload. Keep the closest
-      // available image visible and retry the requested frame on the next tick.
-      if (!img?.naturalWidth) {
-        for (let distance = 1; distance < frames.length; distance += 1) {
-          const before = frames[index - distance];
-          const after = frames[index + distance];
-          if (before?.naturalWidth) {
-            drawableIndex = index - distance;
-            img = before;
-            break;
-          }
-          if (after?.naturalWidth) {
-            drawableIndex = index + distance;
-            img = after;
-            break;
-          }
-        }
-      }
-
-      if (!img || !img.naturalWidth) return;
+      const decoded = loader?.nearest(index)?.frame;
+      if (!decoded) return;
+      const img = decoded.image;
 
       const w = stage!.clientWidth;
       const h = stage!.clientHeight;
-      const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
-      const dw = img.naturalWidth * scale;
-      const dh = img.naturalHeight * scale;
+      const scale = Math.min(w / decoded.width, h / decoded.height);
+      const dw = decoded.width * scale;
+      const dh = decoded.height * scale;
       const dx = (w - dw) / 2;
       const dy = (h - dh) / 2;
 
       ctx!.clearRect(0, 0, w, h);
       ctx!.drawImage(img, dx, dy, dw, dh);
 
-      // Preserve the requested index when we used a fallback so tick() keeps
-      // checking until the exact frame becomes available.
-      drawnIndexRef.current = drawableIndex === index ? index : -1;
+      // a new loader revision redraws a fallback when a closer frame arrives.
+      drawnIndexRef.current = index;
+      canvas!.style.opacity = "1";
+      if (posterRef.current) posterRef.current.style.opacity = "0";
     }
 
     // ===== FRAME LOOP =====
     // explode, rebuild, zoom in, then rewind the zoom back home
+    let loadedRevision = -1;
+    let requestedIndex = -1;
     function tick() {
       const lastStep = PLAYBACK_FRAME_COUNT - 1;
       const step = Math.min(
@@ -524,10 +426,19 @@ export function PcSequenceSection() {
       );
       const index = playbackFrameIndex(step);
 
-      if (index !== drawnIndexRef.current) draw(index);
+      if (index !== requestedIndex) {
+        loader?.request(index);
+        requestedIndex = index;
+      }
+      if (
+        index !== drawnIndexRef.current ||
+        loadedRevision !== loader?.revision
+      ) {
+        draw(index);
+        loadedRevision = loader?.revision ?? -1;
+      }
 
-      // real playback position, not an invented number — same idea as the
-      // loader's actual load percentage
+      // the readout follows the real playback step.
       if (readoutValueRef.current) {
         readoutValueRef.current.textContent = `${String(step).padStart(4, "0")} / ${lastStep}`;
       }
@@ -588,7 +499,13 @@ export function PcSequenceSection() {
 
           // lands fully opaque exactly as the bloom finishes, so there's no
           // seam to see, they're the same white by then
-          if (projectsPanel) projectsPanel.style.opacity = envelope.toFixed(3);
+          if (projectsPanel) {
+            projectsPanel.style.opacity = envelope.toFixed(3);
+            projectsPanel.inert = envelope <= 0.02;
+            const active = String(envelope > 0.02);
+            if (projectsPanel.dataset.active !== active)
+              projectsPanel.dataset.active = active;
+          }
 
           // anime.js gets seeked from this loop like everything else, rather
           // than running its own listener next to gsap's. same envelope that
@@ -615,7 +532,9 @@ export function PcSequenceSection() {
         // translate so gsap's opacity/scale tween on the child never fights
         // it. runs every frame, not just when scroll moves — the spin is on
         // its own clock now
-        const elapsedSeconds = (performance.now() - spinStartedAt) / 1000;
+        const elapsedSeconds = orbitMotion
+          ? (performance.now() - spinStartedAt) / 1000
+          : 0;
         for (const entry of skillOrbitEntries) {
           const radius =
             entry.ring === 1
@@ -692,13 +611,13 @@ export function PcSequenceSection() {
       draw(0);
       // no orbit at all here. frozen icons over a static pc would just be
       // a sticker, and the sr-only list already covers this case
-    } else if (phase === "ready") {
+    } else {
       // only pinned once the lock is off, otherwise the page measures short
       triggers.push(
         ScrollTrigger.create({
           trigger: section!,
           start: "top top",
-          end: `+=${window.innerHeight * scrollLengthVh}`,
+          end: () => `+=${window.innerHeight * scrollLengthVh}`,
           pin: stage!,
           pinSpacing: false,
           scrub: SCRUB,
@@ -710,7 +629,7 @@ export function PcSequenceSection() {
       );
     }
 
-    if (phase === "ready") {
+    {
       // the lock is already off by now, so give layout one frame to come back
       // before scrolltrigger caches any positions
       refreshRafId = requestAnimationFrame(() => {
@@ -750,6 +669,8 @@ export function PcSequenceSection() {
       }
       // otherwise a remount could come back already dimmed or still shrunk
       canvas.style.filter = "";
+      canvas.style.opacity = "0";
+      if (poster) poster.style.opacity = "1";
       gsap.set(canvas, { clearProps: "transform" });
 
       // only clear what this effect actually touched, so a late frame landing
@@ -769,53 +690,55 @@ export function PcSequenceSection() {
         });
       }
     };
-  }, [frames, phase, reducedMotion, scrollLengthVh]);
+  }, [loader, staticContent, reducedMotion, orbitMotion, scrollLengthVh]);
 
   return (
-    <section
-      ref={sectionRef}
-      id="pc-sequence"
-      style={{ height: `${(scrollLengthVh + 1) * 100}svh` }}
-    >
-      <div
-        ref={stageRef}
-        className="bg-bg relative h-svh w-full overflow-hidden"
+    <>
+      <span id="home" />
+      <section
+        ref={sectionRef}
+        id="pc-sequence"
+        data-pinned-sequence={!staticContent}
+        style={{
+          height: staticContent ? "100svh" : `${(scrollLengthVh + 1) * 100}svh`,
+        }}
       >
-        {/* no filter, no background, no shadow on this one — any of them would
+        <div
+          ref={stageRef}
+          className="bg-bg relative h-svh w-full overflow-hidden"
+        >
+          {/* no filter, no background, no shadow on this one — any of them would
             draw the rectangle the whole cutout exists to avoid */}
-        <canvas
-          ref={canvasRef}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full"
-        />
+          <PcPoster imageRef={posterRef} onReady={markEnhanced} />
+          <canvas
+            ref={canvasRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+            data-pc-canvas
+          />
 
-        <ScrollStory reducedMotion={reducedMotion} />
+          {!staticContent && <ScrollStory reducedMotion={reducedMotion} />}
 
-        <SkillsOrbit
-          reducedMotion={reducedMotion}
-          compact={performanceProfile === "phone"}
-        />
+          {!staticContent && (
+            <SkillsOrbit reducedMotion={reducedMotion} compact={false} />
+          )}
 
-        <ProjectsInterlude carouselRef={carouselRef} />
+          {!staticContent && <ProjectsInterlude carouselRef={carouselRef} />}
 
-        <ProfileOverlay phase={phase} />
+          <ProfileOverlay />
 
-        <DecorReadout
-          label="Frame"
-          value={`0000 / ${PLAYBACK_FRAME_COUNT - 1}`}
-          valueRef={readoutValueRef}
-          tone="on-dark"
-          corner="top-right"
-        />
-      </div>
-
-      {phase !== "ready" && (
-        <BootLoader
-          holdProgress={holdProgress}
-          reducedMotion={reducedMotion}
-          exiting={phase !== "booting"}
-        />
-      )}
-    </section>
+          {!staticContent && (
+            <DecorReadout
+              label="Frame"
+              value={`0000 / ${PLAYBACK_FRAME_COUNT - 1}`}
+              valueRef={readoutValueRef}
+              tone="on-dark"
+              corner="top-right"
+            />
+          )}
+        </div>
+      </section>
+      {staticContent && <StaticChapters />}
+    </>
   );
 }

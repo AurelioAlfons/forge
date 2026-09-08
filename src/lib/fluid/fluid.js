@@ -1,3 +1,5 @@
+import { subscribePointer } from "./pointer-events";
+
 /*
 MIT License
 
@@ -1021,6 +1023,11 @@ export function initFluid(canvas, options = {}) {
   update();
 
   function update() {
+    // hidden chapters keep their buffers but do no simulation work.
+    if (options.isActive && !options.isActive()) {
+      rafId = requestAnimationFrame(update);
+      return;
+    }
     const dt = calcDeltaTime();
 
     if (resizeCanvas()) initFramebuffers();
@@ -1379,6 +1386,7 @@ export function initFluid(canvas, options = {}) {
   }
 
   function onMouseMove(e) {
+    if (options.isActive && !options.isActive()) return;
     if (
       options.ignoreSelector &&
       e
@@ -1417,7 +1425,7 @@ export function initFluid(canvas, options = {}) {
     updatePointerUpData(pointers[0]);
   }
 
-  window.addEventListener("mousemove", onMouseMove);
+  const unsubscribePointer = subscribePointer(onMouseMove);
   // mouseleave on the window fires when the cursor actually leaves the page
   window.addEventListener("mouseleave", onMouseLeave);
 
@@ -1425,6 +1433,7 @@ export function initFluid(canvas, options = {}) {
   // require preventDefault() on touchmove, which blocks page scrolling).
   // Instead, each tap fires a one-off splash at that point.
   function onTouchStart(e) {
+    if (options.isActive && !options.isActive()) return;
     const touch = e.touches[0];
     if (!touch) return;
 
@@ -1620,7 +1629,7 @@ export function initFluid(canvas, options = {}) {
     cancelAnimationFrame(rafId);
     clearInterval(idleSplatInterval);
     clearTimeout(idleTimeout);
-    window.removeEventListener("mousemove", onMouseMove);
+    unsubscribePointer();
     window.removeEventListener("mouseleave", onMouseLeave);
     window.removeEventListener("message", onThemeMessage);
     window.removeEventListener("touchstart", onTouchStart);

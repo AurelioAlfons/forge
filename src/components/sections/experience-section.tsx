@@ -5,9 +5,10 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { experience } from "@/lib/experience/experience-data";
 import { PROJECTS_STAGE_COLOR } from "@/lib/projects/carousel-config";
-import { startFluidSafely } from "@/lib/fluid/safe-fluid";
+import { startFluidWhenVisible } from "@/lib/fluid/safe-fluid";
+import { useIntro } from "@/components/intro/use-intro";
 import { useMediaQuery } from "@/components/pc-sequence/use-media-query";
-import { usePerformanceProfile } from "@/components/responsive/use-performance-profile";
+import { usePerformanceSettings } from "@/components/responsive/use-performance-profile";
 import { DecorArrow } from "@/components/decor/decor-arrow";
 import { DecorMark } from "@/components/decor/decor-mark";
 import { ExperienceTimeline } from "./experience-timeline";
@@ -32,7 +33,8 @@ export function ExperienceSection() {
   const contentRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
-  const profile = usePerformanceProfile();
+  const { profile, staticContent, ambientFluid } = usePerformanceSettings();
+  const { phase } = useIntro();
 
   // The whole white page wipes upward over the black PC scene. Scrubbing
   // keeps the transition attached to scroll position and reversible.
@@ -40,7 +42,7 @@ export function ExperienceSection() {
     const section = sectionRef.current;
     const fade = fadeRef.current;
     const content = contentRef.current;
-    if (!section || !fade || !content || reducedMotion) return;
+    if (!section || !fade || !content || reducedMotion || staticContent) return;
 
     gsap.set(fade, {
       clipPath: "inset(0 0 100% 0)",
@@ -112,84 +114,32 @@ export function ExperienceSection() {
       gsap.set(fade, { clearProps: "clipPath,transform" });
       gsap.set(content, { clearProps: "opacity,transform,visibility" });
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, staticContent]);
 
-  // same fluid setup as projects-interlude.tsx, copied discipline and all
-  // — reduced-motion gated, pointer influence scoped to this section's own
-  // bounds so it can't react to (or fight) the Projects canvas elsewhere
+  // this chapter gets a solver only after it is close enough to read.
   useEffect(() => {
     const section = sectionRef.current;
     const canvas = canvasRef.current;
-    if (!section || !canvas) return;
-
-    const motionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
-    let pointerX = -1;
-    let pointerY = -1;
-    let teardown: ((releaseContext?: boolean) => void) | null = null;
-    let requestId = 0;
-
-    function trackPointer(event: PointerEvent) {
-      pointerX = event.clientX;
-      pointerY = event.clientY;
-    }
-
-    function pointerIsOverExperience() {
-      const rect = section!.getBoundingClientRect();
-      return pointerX >= rect.left &&
-        pointerX <= rect.right &&
-        pointerY >= rect.top &&
-        pointerY <= rect.bottom
-        ? 1
-        : 0;
-    }
-
-    function syncMotionPreference() {
-      const currentRequest = ++requestId;
-      teardown?.(false);
-      teardown = null;
-      window.removeEventListener("pointermove", trackPointer);
-
-      if (motionQuery.matches || profile !== "desktop") {
-        canvas!.hidden = true;
-        return;
-      }
-
-      canvas!.hidden = true;
-      window.addEventListener("pointermove", trackPointer, { passive: true });
-      void startFluidSafely(canvas!, {
-        palette: EXPERIENCE_FLUID_PALETTE,
-        getPointerInfluence: pointerIsOverExperience,
-        transparent: true,
-        initialSplats: 0,
-        idleSplats: false,
-        tuning: {
-          simResolution: 128,
-          dyeResolution: 1024,
-          densityDissipation: 1,
-          velocityDissipation: 0.2,
-          curl: 30,
-          splatRadius: 0.25,
-          splatForce: 6000,
-        },
-      }).then((nextTeardown) => {
-        if (currentRequest !== requestId) {
-          nextTeardown?.(true);
-          return;
-        }
-        teardown = nextTeardown;
-        canvas!.hidden = !nextTeardown;
-      });
-    }
-
-    syncMotionPreference();
-    motionQuery.addEventListener("change", syncMotionPreference);
-    return () => {
-      motionQuery.removeEventListener("change", syncMotionPreference);
-      requestId += 1;
-      window.removeEventListener("pointermove", trackPointer);
-      teardown?.(true);
-    };
-  }, [profile]);
+    if (!section || !canvas || !ambientFluid || phase !== "enhanced") return;
+    return startFluidWhenVisible(canvas, section, {
+      palette: EXPERIENCE_FLUID_PALETTE,
+      transparent: true,
+      initialSplats: 0,
+      idleSplats: false,
+      isActive: () =>
+        section.getBoundingClientRect().bottom > window.innerHeight / 2 &&
+        Number.parseFloat(contentRef.current?.style.opacity || "1") > 0.02,
+      tuning: {
+        simResolution: 128,
+        dyeResolution: 512,
+        densityDissipation: 1,
+        velocityDissipation: 0.2,
+        curl: 30,
+        splatRadius: 0.25,
+        splatForce: 6000,
+      },
+    });
+  }, [ambientFluid, phase, profile]);
 
   return (
     <section
@@ -209,13 +159,16 @@ export function ExperienceSection() {
           style={{ backgroundColor: PROJECTS_STAGE_COLOR }}
         />
 
-        <canvas
-          ref={canvasRef}
-          data-experience-fluid
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-1/2 left-1/2 h-full w-screen max-sm:hidden"
-          style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
-        />
+        {ambientFluid && (
+          <canvas
+            ref={canvasRef}
+            key={`${profile}-${staticContent}`}
+            data-experience-fluid
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}
+          />
+        )}
 
         <div ref={contentRef} className="container-page relative">
           <div className="mb-m flex items-center gap-2">
@@ -223,7 +176,7 @@ export function ExperienceSection() {
             <DecorArrow tone="on-light" />
           </div>
           <h2 className="text-step-3 font-semibold tracking-tight text-black">
-            Experience
+            Mission log
           </h2>
 
           <ExperienceTimeline entries={experience} />

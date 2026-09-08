@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import type { DecorTone } from "@/lib/decor/tone";
 import { decorInk } from "@/lib/decor/tone";
+import { cn } from "@/lib/utils";
 
 type HeroShutterTextProps = {
   text: string;
@@ -23,9 +24,10 @@ export function HeroShutterText({
   return (
     <motion.span
       aria-hidden="true"
-      className={`inline-flex flex-wrap justify-start items-center -translate-x-100 translate-y-7 ${
-        className ?? ""
-      }`}
+      className={cn(
+        "inline-flex -translate-x-100 translate-y-7 flex-wrap items-center justify-start",
+        className,
+      )}
     >
       {characters.map((char, i) => (
         <span
@@ -79,8 +81,7 @@ export function HeroShutterText({
             className="pointer-events-none absolute inset-0"
             style={{
               color: accent,
-              clipPath:
-                "polygon(0 0, 100% 0, 100% 48%, 0 48%)",
+              clipPath: "polygon(0 0, 100% 0, 100% 48%, 0 48%)",
             }}
           >
             {char === " " ? "\u00A0" : char}
@@ -108,8 +109,7 @@ export function HeroShutterText({
             className="pointer-events-none absolute inset-0"
             style={{
               color: ink,
-              clipPath:
-                "polygon(0 48%, 100% 48%, 100% 52%, 0 52%)",
+              clipPath: "polygon(0 48%, 100% 48%, 100% 52%, 0 52%)",
             }}
           >
             {char === " " ? "\u00A0" : char}
@@ -137,8 +137,7 @@ export function HeroShutterText({
             className="pointer-events-none absolute inset-0"
             style={{
               color: accent,
-              clipPath:
-                "polygon(0 52%, 100% 52%, 100% 100%, 0 100%)",
+              clipPath: "polygon(0 52%, 100% 52%, 100% 100%, 0 100%)",
             }}
           >
             {char === " " ? "\u00A0" : char}

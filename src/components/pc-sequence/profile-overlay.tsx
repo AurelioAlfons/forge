@@ -1,8 +1,5 @@
 import { FaGithub, FaLinkedin } from "react-icons/fa";
-import type { IntroPhase } from "@/components/intro/intro-context";
 import { site } from "@/lib/site";
-import { DecorArrow } from "@/components/decor/decor-arrow";
-import { DecorMark } from "@/components/decor/decor-mark";
 
 const socialLinks = [
   {
@@ -17,46 +14,48 @@ const socialLinks = [
   },
 ] as const;
 
-type ProfileOverlayProps = {
-  phase: IntroPhase;
-};
-
-export function ProfileOverlay({ phase }: ProfileOverlayProps) {
-  const hidden = phase === "booting";
-  // set from the first render, so there is never a frame where a link is
-  // tabbable and then goes inert under someone's focus
-  const introRunning = phase !== "ready";
-
+export function ProfileOverlay() {
   return (
-    <div className="pointer-events-none absolute inset-10 z-10">
+    <div className="pointer-events-none absolute inset-0 z-10">
       <section
         data-profile-intro
         aria-labelledby="intro-heading"
-        className={`absolute top-[clamp(6rem,13svh,8rem)] left-4 w-[min(26rem,calc(100vw-2rem))] sm:left-[clamp(4.75rem,6vw,6rem)] ${hidden ? "invisible opacity-0" : ""}`}
+        className="hero-identity absolute"
       >
-        <div className="mb-2xs flex items-center gap-2">
-          <DecorMark variant="triad" tone="on-dark" size={16} />
-          <DecorArrow tone="on-dark" />
-        </div>
+        <p className="system-label mb-5">
+          <span className="system-indicator" aria-hidden="true" />
+          {site.systemName}{" "}
+          <span className="text-white/55">/ Developer profile</span>
+        </p>
 
         <h1
           id="intro-heading"
-          className="text-fg max-w-[9ch] text-[clamp(2.75rem,4.7vw,4.75rem)] leading-[0.88] font-semibold tracking-[-0.055em]"
+          className="hero-name text-fg font-semibold tracking-[-0.055em] uppercase"
         >
-          Aurelio Hevi
-          <br />
-          Alfons
+          {site.displayName}
         </h1>
-        <p className="text-muted mt-m max-w-100 text-sm leading-relaxed sm:text-lg">
+        <p className="system-label mt-4">{site.role}</p>
+        <p className="hero-description text-muted mt-3 text-sm leading-relaxed sm:text-base">
           {site.description}
         </p>
+        {/* both links use the ruler's existing anchor mapping. */}
+        <nav
+          aria-label="Profile actions"
+          className="hero-actions pointer-events-auto"
+        >
+          <a href="#projects" className="system-action system-action-primary">
+            View missions <span aria-hidden="true">↗</span>
+          </a>
+          <a href="#contact" className="system-action">
+            Contact
+          </a>
+        </nav>
       </section>
 
       <nav
         data-social-links
         aria-label="Social profiles"
-        inert={introRunning}
-        className={`absolute bottom-[max(env(safe-area-inset-bottom),1.5rem)] left-16 flex items-center gap-10.5 sm:left-[clamp(5.75rem,6vw,6rem)] ${introRunning ? "pointer-events-none" : "pointer-events-auto"} ${hidden ? "invisible opacity-0" : ""}`}
+        className={`pointer-events-auto absolute bottom-[max(env(safe-area-inset-bottom),2.5rem)] left-14 flex items-center gap-6 sm:left-[clamp(5rem,8.8vw,8rem)]`}
       >
         {socialLinks.map(({ href, label, icon: Icon }) => (
           <a
@@ -64,11 +63,11 @@ export function ProfileOverlay({ phase }: ProfileOverlayProps) {
             href={href}
             target="_blank"
             rel="noreferrer"
-            aria-label={label}
+            aria-label={`${label} (opens in a new tab)`}
             title={label}
-            className="text-muted grid size-13 place-items-center rounded-sm transition-all duration-200 hover:text-[#dfa812]"
+            className="text-muted grid size-11 place-items-center rounded-sm transition-colors duration-200 hover:text-[#dfa812]"
           >
-            <Icon aria-hidden="true" className="size-25" />
+            <Icon aria-hidden="true" className="size-9" />
           </a>
         ))}
       </nav>

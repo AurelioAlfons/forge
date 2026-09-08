@@ -6,16 +6,15 @@ import { animate, splitText, stagger } from "animejs";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { site } from "@/lib/site";
-import { useMediaQuery } from "@/components/pc-sequence/use-media-query";
+import { usePerformanceSettings } from "@/components/responsive/use-performance-profile";
 
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const GOLD = "#dfa812";
 
 export function ContactSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const formTextRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+  const { staticContent: reducedMotion } = usePerformanceSettings();
 
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
@@ -103,8 +102,12 @@ export function ContactSection() {
         className="absolute -top-[clamp(12rem,24vh,20rem)] right-1/2 bottom-0 left-1/2 -z-10 -mx-[50vw] w-screen bg-black"
       />
 
-      <div ref={gridRef} className="gap-m grid lg:grid-cols-2">
-        <div className="border-border p-l rounded-2xl border bg-white/[0.03]">
+      <div
+        ref={gridRef}
+        className="gap-m grid min-w-0 grid-cols-1 lg:grid-cols-2"
+      >
+        <div className="border-border sm:p-l min-w-0 rounded-2xl border bg-white/[0.03] p-4">
+          <p className="system-label mb-4">05 / Transmit</p>
           <div ref={formTextRef}>
             <h2
               data-split-text
@@ -126,7 +129,7 @@ export function ContactSection() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="placeholder:text-muted px-s py-2xs rounded-md border border-white/10 bg-white/5"
+              className="placeholder:text-muted px-s py-2xs w-full min-w-0 rounded-md border border-white/10 bg-white/5"
             />
             <input
               aria-label="Subject"
@@ -136,7 +139,7 @@ export function ContactSection() {
               required
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              className="placeholder:text-muted px-s py-2xs rounded-md border border-white/10 bg-white/5"
+              className="placeholder:text-muted px-s py-2xs w-full min-w-0 rounded-md border border-white/10 bg-white/5"
             />
             <textarea
               aria-label="Message"
@@ -146,7 +149,7 @@ export function ContactSection() {
               rows={5}
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              className="placeholder:text-muted px-s py-2xs rounded-md border border-white/10 bg-white/5"
+              className="placeholder:text-muted px-s py-2xs w-full min-w-0 rounded-md border border-white/10 bg-white/5"
             />
 
             <button
@@ -161,13 +164,13 @@ export function ContactSection() {
         {/* same gold-glow language as the skill hex tiles and the social
             hover, just as a soft radial glow behind the icon instead of a
             border/shadow — this card's whole point is that glow */}
-        <div className="border-border p-l flex flex-col rounded-2xl border bg-white/[0.03]">
+        <div className="border-border sm:p-l flex min-w-0 flex-col rounded-2xl border bg-white/[0.03] p-4">
           <p className="text-step--1 text-muted font-mono tracking-[0.3em] uppercase">
             Resume
           </p>
 
           <div className="my-l grid place-items-center">
-            <div className="border-border gap-s p-xl flex w-fit flex-col items-center rounded-2xl border">
+            <div className="border-border gap-s sm:p-xl flex w-fit max-w-full flex-col items-center rounded-2xl border p-4">
               <div className="relative grid place-items-center">
                 <div
                   aria-hidden="true"
@@ -195,7 +198,7 @@ export function ContactSection() {
             skills.
           </p>
 
-          <div className="mt-l gap-s flex">
+          <div className="mt-l gap-s flex flex-col sm:flex-row">
             <a
               href={site.resume.href}
               target="_blank"

@@ -3,50 +3,25 @@
 import { useEffect, useRef } from "react";
 import { DEFAULT_FLUID_THEME, FLUID_THEMES } from "@/lib/fluid/fluid-theme";
 import { getPointerInfluence } from "@/lib/fluid/pointer-influence";
-import { startFluidSafely } from "@/lib/fluid/safe-fluid";
-import {
-  PHONE_QUERY,
-  TABLET_QUERY,
-} from "@/lib/responsive/performance-profile";
+import { startFluidWhenVisible } from "@/lib/fluid/safe-fluid";
+import { useIntro } from "@/components/intro/use-intro";
+import { usePerformanceSettings } from "@/components/responsive/use-performance-profile";
 
 export function FluidBackground() {
   const ref = useRef<HTMLCanvasElement>(null);
+  const { phase } = useIntro();
+  const { ambientFluid, profile } = usePerformanceSettings();
 
   useEffect(() => {
     const canvas = ref.current;
-    if (!canvas) return;
-
-    // static black background for anyone who asked for less motion
-    if (
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      window.matchMedia(PHONE_QUERY).matches
-    ) {
-      return;
-    }
-
-    const tablet = window.matchMedia(TABLET_QUERY).matches;
-
-    // the async solver can land after unmount, so late arrivals tear
-    // themselves down instead of leaving a webgl loop behind.
-    let cancelled = false;
-    let teardown: ((releaseContext?: boolean) => void) | null = null;
-
-    void startFluidSafely(canvas, {
+    const section = document.getElementById("pc-sequence");
+    if (!canvas || !section || !ambientFluid || phase !== "enhanced") return;
+    return startFluidWhenVisible(canvas, section, {
       palette: FLUID_THEMES[DEFAULT_FLUID_THEME].palette,
       getPointerInfluence,
-      tuning: tablet
-        ? { simResolution: 64, dyeResolution: 512, curl: 20 }
-        : undefined,
-    }).then((nextTeardown) => {
-      if (cancelled) nextTeardown?.(true);
-      else teardown = nextTeardown;
+      tuning: { simResolution: 64, dyeResolution: 256, curl: 20 },
     });
-
-    return () => {
-      cancelled = true;
-      teardown?.(true);
-    };
-  }, []);
+  }, [ambientFluid, phase, profile]);
 
   // h-full w-full is load-bearing here. inset-0 on its own won't stretch a
   // canvas — replaced elements keep their intrinsic 300x150, so the sim ends up
@@ -58,6 +33,7 @@ export function FluidBackground() {
   return (
     <canvas
       ref={ref}
+      key={`${profile}-${ambientFluid}`}
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 -z-10 h-full w-full max-sm:hidden"
       style={{ filter: "brightness(0.95) contrast(1.15) saturate(1.8)" }}

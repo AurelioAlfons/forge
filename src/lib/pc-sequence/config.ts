@@ -41,7 +41,7 @@ export function framePath(index: number) {
   return `/pc-sequence/${folder}/${String(folderIndex + 1).padStart(2, "0")}.webp`;
 }
 
-/** The one frame the intro actually waits on. Preloaded in the document head. */
+/** Immediate poster, shared by the document preload and the canvas seed. */
 export const GATE_FRAME_PATH = framePath(0);
 
 export function zoomPlaybackFrameIndex(step: number) {
@@ -110,23 +110,3 @@ export const HIT_ALPHA_THRESHOLD = 25;
 
 /** Per-frame easing step toward the target influence. Snapping flickers. */
 export const INFLUENCE_EASE = 0.12;
-
-// ===== INTRO TIMING =====
-
-/** Fan beat. Ends at whichever is later: this, or frame 01 being drawable. */
-export const FAN_HOLD_MS = 1100;
-
-/** Hard cap, so a stalled frame 01 can never hold someone hostage. */
-export const FAN_MAX_MS = 5000;
-
-/** Fan slide-up. */
-export const FAN_EXIT_MS = 350;
-
-/** Everything arrives together, staggered. Offsets and durations in seconds. */
-export const REVEAL = {
-  canvas: { at: 0, duration: 0.85 },
-  musicPlayer: { at: 0.1, duration: 0.75 },
-  profileIntro: { at: 0.2, duration: 0.8 },
-  socialLinks: { at: 0.3, duration: 0.8 },
-  pageTimeline: { at: 0.4, duration: 0.7 },
-} as const;

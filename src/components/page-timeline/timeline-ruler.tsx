@@ -120,7 +120,7 @@ export function TimelineRuler({
         }`}
       >
         <p className="px-2.5 pt-1 pb-2 font-mono text-[0.65rem] tracking-[0.18em] text-[#dfa812] uppercase">
-          Navigation
+          Forge OS / Chapters
         </p>
 
         <div className="flex flex-col gap-0.5">

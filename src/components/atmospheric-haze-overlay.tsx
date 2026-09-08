@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties } from "react";
-import { startFluidSafely } from "@/lib/fluid/safe-fluid";
-import { usePerformanceProfile } from "@/components/responsive/use-performance-profile";
+import { startFluidWhenVisible } from "@/lib/fluid/safe-fluid";
+import { usePerformanceSettings } from "@/components/responsive/use-performance-profile";
+
+import { useIntro } from "@/components/intro/use-intro";
+import { subscribePointer } from "@/lib/fluid/pointer-events";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const INTERACTIVE_SELECTOR =
@@ -11,65 +14,42 @@ const INTERACTIVE_SELECTOR =
 export function AtmosphericHazeOverlay() {
   const hazeRef = useRef<HTMLDivElement>(null);
   const fluidRef = useRef<HTMLCanvasElement>(null);
-  const profile = usePerformanceProfile();
+  const { profile, ambientFluid } = usePerformanceSettings();
+  const { phase } = useIntro();
 
   useEffect(() => {
     const canvas = fluidRef.current;
-    if (!canvas) return;
-
-    const motionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
-    let teardown: ((releaseContext?: boolean) => void) | null = null;
-    let requestId = 0;
-
-    function sync() {
-      const currentRequest = ++requestId;
-      teardown?.(false);
-      teardown = null;
-      const blocked = motionQuery.matches || profile !== "desktop";
-      canvas!.hidden = true;
-      if (blocked) return;
-
-      void startFluidSafely(canvas!, {
-        palette: [
-          { h: 0, s: 0, v: 0.75 },
-          { h: 0, s: 0, v: 0.75 },
-          { h: 0, s: 0, v: 0.48 },
-        ],
-        transparent: true,
-        initialSplats: 0,
-        idleSplats: false,
-        ignoreSelector: INTERACTIVE_SELECTOR,
-        tuning: {
-          simResolution: 128,
-          dyeResolution: 512,
-          densityDissipation: 1.35,
-          velocityDissipation: 0.32,
-          curl: 22,
-          splatRadius: 0.22,
-          splatForce: 4200,
-        },
-      }).then((nextTeardown) => {
-        if (currentRequest !== requestId) {
-          nextTeardown?.(true);
-          return;
-        }
-        teardown = nextTeardown;
-        canvas!.hidden = !nextTeardown;
-      });
-    }
-
-    sync();
-    motionQuery.addEventListener("change", sync);
-    return () => {
-      motionQuery.removeEventListener("change", sync);
-      requestId += 1;
-      teardown?.(true);
-    };
-  }, [profile]);
+    const section = document.getElementById("pc-sequence");
+    if (!canvas || !section || !ambientFluid || phase !== "enhanced") return;
+    return startFluidWhenVisible(canvas, section, {
+      palette: [
+        { h: 0, s: 0, v: 0.75 },
+        { h: 0, s: 0, v: 0.48 },
+      ],
+      transparent: true,
+      initialSplats: 0,
+      idleSplats: false,
+      ignoreSelector: INTERACTIVE_SELECTOR,
+      isActive: () =>
+        document.querySelector<HTMLElement>("[data-projects-interlude]")
+          ?.dataset.active !== "true" &&
+        window.scrollY < section.offsetHeight - window.innerHeight,
+      tuning: {
+        simResolution: 64,
+        dyeResolution: 256,
+        densityDissipation: 1.35,
+        velocityDissipation: 0.32,
+        curl: 22,
+        splatRadius: 0.22,
+        splatForce: 4200,
+      },
+    });
+  }, [ambientFluid, phase, profile]);
 
   useEffect(() => {
     const haze = hazeRef.current;
-    if (!haze) return;
+    if (!haze || !ambientFluid || phase !== "enhanced") return;
+    let unsubscribe = () => {};
 
     const motionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
     let frameId = 0;
@@ -175,12 +155,10 @@ export function AtmosphericHazeOverlay() {
     }
 
     function syncMotionPreference() {
-      window.removeEventListener("pointermove", onPointerMove);
+      unsubscribe();
       haze!.style.opacity = "0";
       if (!motionQuery.matches && profile === "desktop") {
-        window.addEventListener("pointermove", onPointerMove, {
-          passive: true,
-        });
+        unsubscribe = subscribePointer(onPointerMove);
       }
     }
 
@@ -188,16 +166,17 @@ export function AtmosphericHazeOverlay() {
     motionQuery.addEventListener("change", syncMotionPreference);
     return () => {
       motionQuery.removeEventListener("change", syncMotionPreference);
-      window.removeEventListener("pointermove", onPointerMove);
+      unsubscribe();
       cancelAnimationFrame(frameId);
       window.clearTimeout(fadeId);
     };
-  }, [profile]);
+  }, [profile, ambientFluid, phase]);
 
   return (
     <>
       <canvas
         ref={fluidRef}
+        key={`${profile}-${ambientFluid}`}
         data-fluid-smoke
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-5 h-full w-full max-sm:hidden"

@@ -57,6 +57,11 @@ The codebase is organised into dedicated components and libraries for navigation
 
 ## 📌 Project Status
 
+PC frame source PNGs live in `assets/pc-sequence-source/`, outside the public
+deployment assets. The 160 runtime WebP frames remain in `public/pc-sequence/`.
+To regenerate them, run `python tools/build-pc-webp.py`; its default source and
+output paths point to those directories.
+
 - ✅ Core portfolio layout and design system
 - ✅ Fluid typography and spacing system
 - ✅ GSAP scroll animation system

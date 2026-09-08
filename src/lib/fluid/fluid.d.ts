@@ -11,6 +11,7 @@ export type FluidOptions = {
   initialSplats?: number;
   idleSplats?: boolean;
   ignoreSelector?: string;
+  isActive?: () => boolean;
   tuning?: Partial<{
     simResolution: number;
     dyeResolution: number;
