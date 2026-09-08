@@ -98,10 +98,12 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
           laid over it. sits above the stage, below the panel. */}
       <div
         data-projects-bloom
+        hidden
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-15"
         style={{
           opacity: 0,
+          visibility: "hidden",
           background: BLOOM_GRADIENT,
           mixBlendMode: "screen",
         }}
@@ -111,10 +113,15 @@ export function ProjectsInterlude({ carouselRef }: ProjectsInterludeProps) {
         ref={sectionRef}
         aria-label="Missions"
         data-projects-interlude
+        hidden
         data-active="false"
         inert
         className="pointer-events-none absolute inset-0 z-20"
-        style={{ opacity: 0, backgroundColor: PROJECTS_STAGE_COLOR }}
+        style={{
+          opacity: 0,
+          visibility: "hidden",
+          backgroundColor: PROJECTS_STAGE_COLOR,
+        }}
       >
         <canvas
           ref={canvasRef}

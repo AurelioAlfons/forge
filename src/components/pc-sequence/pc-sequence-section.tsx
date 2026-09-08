@@ -59,6 +59,7 @@ export function PcSequenceSection() {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const readoutValueRef = useRef<HTMLSpanElement>(null);
+  const loadingRef = useRef<HTMLDivElement>(null);
 
   // scroll progress lives in a ref so scrubbing doesn't re-render the section
   const progressRef = useRef(0);
@@ -104,7 +105,37 @@ export function PcSequenceSection() {
     );
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const loading = loadingRef.current;
+    let canvasLost = false;
+    function showPreview(message = "Loading PC animation…") {
+      canvas!.style.opacity = "0";
+      if (poster) {
+        poster.style.opacity = "1";
+        poster.style.zIndex = "25";
+      }
+      stage!.dataset.pcReady = "false";
+      if (loading) {
+        loading.hidden = false;
+        if (loading.textContent !== message) loading.textContent = message;
+      }
+    }
+    function onContextLost(event: Event) {
+      event.preventDefault();
+      canvasLost = true;
+      showPreview("Restoring PC animation…");
+    }
+    function onContextRestored() {
+      canvasLost = false;
+      drawnIndexRef.current = -1;
+      resize();
+    }
+    canvas.addEventListener("contextlost", onContextLost);
+    canvas.addEventListener("contextrestored", onContextRestored);
+    showPreview();
+    const loadingTimeout = window.setTimeout(() => {
+      if (stage!.dataset.pcReady !== "true")
+        showPreview("PC preview · animation still loading");
+    }, 8000);
 
     const triggers: ScrollTrigger[] = [];
     let introTween: gsap.core.Tween | null = null;
@@ -363,7 +394,8 @@ export function PcSequenceSection() {
       canvas!.height = Math.round(h * dpr);
       canvas!.style.width = `${w}px`;
       canvas!.style.height = `${h}px`;
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      showPreview();
 
       // the rings are sized off the fan as it actually lands on screen, so
       // the orbit reads as tiled onto the disc, not stretched over the page
@@ -394,7 +426,10 @@ export function PcSequenceSection() {
     // contain-fit and centred, same scale as before the background cleanup
     function draw(index: number) {
       const decoded = loader?.nearest(index)?.frame;
-      if (!decoded) return;
+      if (!decoded || !ctx || canvasLost || ctx.isContextLost()) {
+        showPreview();
+        return;
+      }
       const img = decoded.image;
 
       const w = stage!.clientWidth;
@@ -405,13 +440,25 @@ export function PcSequenceSection() {
       const dx = (w - dw) / 2;
       const dy = (h - dh) / 2;
 
-      ctx!.clearRect(0, 0, w, h);
-      ctx!.drawImage(img, dx, dy, dw, dh);
+      try {
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(img, dx, dy, dw, dh);
+      } catch {
+        // a rejected bitmap must never strand the page behind an empty canvas.
+        showPreview("PC preview · retrying animation");
+        drawnIndexRef.current = -1;
+        return;
+      }
 
       // a new loader revision redraws a fallback when a closer frame arrives.
       drawnIndexRef.current = index;
       canvas!.style.opacity = "1";
-      if (posterRef.current) posterRef.current.style.opacity = "0";
+      if (posterRef.current) {
+        posterRef.current.style.opacity = "0";
+        posterRef.current.style.removeProperty("z-index");
+      }
+      stage!.dataset.pcReady = "true";
+      if (loading) loading.hidden = true;
     }
 
     // ===== FRAME LOOP =====
@@ -419,6 +466,7 @@ export function PcSequenceSection() {
     let loadedRevision = -1;
     let requestedIndex = -1;
     function tick() {
+      rafId = requestAnimationFrame(tick);
       const lastStep = PLAYBACK_FRAME_COUNT - 1;
       const step = Math.min(
         lastStep,
@@ -432,7 +480,9 @@ export function PcSequenceSection() {
       }
       if (
         index !== drawnIndexRef.current ||
-        loadedRevision !== loader?.revision
+        loadedRevision !== loader?.revision ||
+        canvasLost ||
+        ctx?.isContextLost()
       ) {
         draw(index);
         loadedRevision = loader?.revision ?? -1;
@@ -490,7 +540,10 @@ export function PcSequenceSection() {
           const envelope = transitionEnvelope(projectsProgress);
 
           if (projectsBloom) {
+            projectsBloom.hidden = envelope <= 0;
             projectsBloom.style.opacity = envelope.toFixed(3);
+            projectsBloom.style.visibility =
+              envelope > 0 ? "visible" : "hidden";
             projectsBloom.style.setProperty(
               "--projects-bloom-spread",
               `${bloomSpreadPercent(envelope).toFixed(1)}%`,
@@ -500,7 +553,10 @@ export function PcSequenceSection() {
           // lands fully opaque exactly as the bloom finishes, so there's no
           // seam to see, they're the same white by then
           if (projectsPanel) {
+            projectsPanel.hidden = envelope <= 0;
             projectsPanel.style.opacity = envelope.toFixed(3);
+            projectsPanel.style.visibility =
+              envelope > 0 ? "visible" : "hidden";
             projectsPanel.inert = envelope <= 0.02;
             const active = String(envelope > 0.02);
             if (projectsPanel.dataset.active !== active)
@@ -551,8 +607,6 @@ export function PcSequenceSection() {
           entry.el.style.transform = `translate(-50%, -50%) translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
         }
       }
-
-      rafId = requestAnimationFrame(tick);
     }
 
     resize();
@@ -645,6 +699,9 @@ export function PcSequenceSection() {
     return () => {
       cancelAnimationFrame(rafId);
       cancelAnimationFrame(refreshRafId);
+      window.clearTimeout(loadingTimeout);
+      canvas.removeEventListener("contextlost", onContextLost);
+      canvas.removeEventListener("contextrestored", onContextRestored);
       window.removeEventListener("resize", resize);
       // only our own triggers — getAll() would kill anything else on the page
       for (const t of triggers) t.kill();
@@ -662,15 +719,24 @@ export function PcSequenceSection() {
       if (skillTiles.length) gsap.set(skillTiles, { opacity: 0, scale: 0.6 });
       if (ringGlows.length) gsap.set(ringGlows, { opacity: 0 });
       if (skillsTitle) gsap.set(skillsTitle, { opacity: 0, x: -32 });
-      if (projectsPanel) projectsPanel.style.opacity = "0";
+      if (projectsPanel) {
+        projectsPanel.style.opacity = "0";
+        projectsPanel.style.visibility = "hidden";
+        projectsPanel.hidden = true;
+      }
       if (projectsBloom) {
         projectsBloom.style.opacity = "0";
+        projectsBloom.style.visibility = "hidden";
+        projectsBloom.hidden = true;
         projectsBloom.style.removeProperty("--projects-bloom-spread");
       }
       // otherwise a remount could come back already dimmed or still shrunk
       canvas.style.filter = "";
       canvas.style.opacity = "0";
-      if (poster) poster.style.opacity = "1";
+      if (poster) {
+        poster.style.opacity = "1";
+        poster.style.removeProperty("z-index");
+      }
       gsap.set(canvas, { clearProps: "transform" });
 
       // only clear what this effect actually touched, so a late frame landing
@@ -705,6 +771,7 @@ export function PcSequenceSection() {
       >
         <div
           ref={stageRef}
+          data-pc-ready="false"
           className="bg-bg relative h-svh w-full overflow-hidden"
         >
           {/* no filter, no background, no shadow on this one — any of them would
@@ -726,6 +793,17 @@ export function PcSequenceSection() {
           {!staticContent && <ProjectsInterlude carouselRef={carouselRef} />}
 
           <ProfileOverlay />
+
+          {!staticContent && (
+            <div
+              ref={loadingRef}
+              role="status"
+              aria-live="polite"
+              className="absolute right-6 bottom-6 z-30 rounded border border-white/20 bg-black/85 px-4 py-3 font-mono text-xs text-white"
+            >
+              Loading PC animation…
+            </div>
+          )}
 
           {!staticContent && (
             <DecorReadout

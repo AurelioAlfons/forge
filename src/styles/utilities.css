@@ -1,4 +1,9 @@
 /* ===== FORGE OS SHELL ===== */
+/* the preview stays clear while the canvas catches up or recovers. */
+body:has([data-pinned-sequence="true"] [data-pc-ready="false"])
+  :is([data-fluid-smoke], [data-atmospheric-haze]) {
+  visibility: hidden;
+}
 /* native chapters keep their content in flow on phones and without motion. */
 [data-experience-mode="static"] #experience {
   margin-top: 0;
